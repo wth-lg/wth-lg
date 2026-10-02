@@ -1,4 +1,5 @@
-<!-- wth-lg's profile README. The palette is wentao.gg's: ink #0b0d12, paper #e8e8e2, blue #2563eb.
+<!-- wth-lg's profile README. The palette is wentao.gg's: ink #0b0d12, paper #e8e8e2, blue #2563eb. The wentao.gg badge's
+     logo is the site's own heptadecagon (app/icon.svg's path, filled #e8e8e2), embedded as a data URI.
      The 3D calendar (profile-3d-contrib/) and the snake (the output branch) are redrawn by this repo's workflows. -->
 
 <p align="center">
@@ -14,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://wentao.gg"><img src="https://img.shields.io/badge/wentao.gg-0b0d12?style=for-the-badge&logo=vercel&logoColor=e8e8e2" alt="wentao.gg" /></a>
+  <a href="https://wentao.gg"><img src="https://img.shields.io/badge/wentao.gg-0b0d12?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBmaWxsPSIjZThlOGUyIiBkPSJNIDQ3LjU0IDkuNDYgUSA1MC4wMCA5LjAwIDUyLjQ2IDkuNDYgTCA2Mi4zNSAxMS4zMSBRIDY0LjgxIDExLjc3IDY2Ljk0IDEzLjA4IEwgNzUuNTAgMTguMzggUSA3Ny42MiAxOS43MCA3OS4xMyAyMS43MCBMIDg1LjIwIDI5LjczIFEgODYuNzAgMzEuNzIgODcuMzkgMzQuMTMgTCA5MC4xNCA0My44MSBRIDkwLjgzIDQ2LjIyIDkwLjU5IDQ4LjcxIEwgODkuNjcgNTguNzMgUSA4OS40MyA2MS4yMiA4OC4zMiA2My40NiBMIDgzLjgzIDcyLjQ3IFEgODIuNzIgNzQuNzEgODAuODcgNzYuMzkgTCA3My40MyA4My4xNyBRIDcxLjU4IDg0Ljg2IDY5LjI1IDg1Ljc2IEwgNTkuODYgODkuNDAgUSA1Ny41MyA5MC4zMCA1NS4wMyA5MC4zMCBMIDQ0Ljk3IDkwLjMwIFEgNDIuNDcgOTAuMzAgNDAuMTQgODkuNDAgTCAzMC43NSA4NS43NiBRIDI4LjQyIDg0Ljg2IDI2LjU3IDgzLjE3IEwgMTkuMTMgNzYuMzkgUSAxNy4yOCA3NC43MSAxNi4xNyA3Mi40NyBMIDExLjY4IDYzLjQ2IFEgMTAuNTcgNjEuMjIgMTAuMzMgNTguNzMgTCA5LjQxIDQ4LjcxIFEgOS4xNyA0Ni4yMiA5Ljg2IDQzLjgxIEwgMTIuNjEgMzQuMTMgUSAxMy4zMCAzMS43MiAxNC44MCAyOS43MyBMIDIwLjg3IDIxLjcwIFEgMjIuMzggMTkuNzAgMjQuNTAgMTguMzggTCAzMy4wNiAxMy4wOCBRIDM1LjE5IDExLjc3IDM3LjY1IDExLjMxIFoiLz48L3N2Zz4%3D" alt="wentao.gg" /></a>
   <a href="https://www.linkedin.com/in/wthe/"><img src="https://img.shields.io/badge/LinkedIn-2563eb?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" /></a>
   <a href="mailto:me@wentao.gg"><img src="https://img.shields.io/badge/me%40wentao.gg-13213f?style=for-the-badge&logo=maildotru&logoColor=e8e8e2" alt="me@wentao.gg" /></a>
   <img src="https://komarev.com/ghpvc/?username=wth-lg&label=peeks&color=2563eb&style=for-the-badge" alt="profile peeks" />
