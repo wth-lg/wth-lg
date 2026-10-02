@@ -31,13 +31,6 @@
 - 🏋️ off the keyboard: powerlifting and photography
 - 🌐 everything else lives at **[wentao.gg](https://wentao.gg)**
 
-### 🧪 side projects
-
-| | |
-|:--|:--|
-| 🐋 **[Whale Tracker](https://wentao.gg/projects/hl-whale-tracker)**<br/><sub>Hyperliquid's top 50 perp accounts by PnL, ROI and volume, with their live positions and fills</sub> | 🏋️ **[PowerOPPS](https://wentao.gg/projects/poweropps)**<br/><sub>powerlifting scores across 5 systems (IPF GL, DOTS, Wilks 2.0, IPF, Old Wilks), with reverse calculation for targets</sub> |
-| 📊 **[ProgDash](https://wentao.gg/projects/progdash)**<br/><sub>a Google Sheets training log, parsed into blocks, sets and progression</sub> | 🎥 **What's my RPE?** <sub>· coming soon</sub><br/><sub>barbell speed from video (pose estimation, optical flow) to predict RPE and estimate a 1RM</sub> |
-
 ### 🧰 stack
 
 <p align="center">
