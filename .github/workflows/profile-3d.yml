@@ -1,5 +1,7 @@
 # The 3D contribution calendar for the profile README (profile-3d-contrib/*.svg), redrawn daily from wth-lg's
-# contribution calendar (private contributions are counted where the profile shows them).
+# contribution calendar (private contributions are counted where the profile shows them). The tool's radar and
+# language donut see only public work, so scripts/weekday_radar.py swaps the radar for contributions by weekday,
+# which add up to the headline, and drops the donut.
 name: profile-3d
 
 on:
@@ -17,6 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: yoshi389111/github-profile-3d-contrib@v0.9.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: ${{ github.repository_owner }}
+      - name: Plot contributions by weekday in place of the radar
+        run: python3 scripts/weekday_radar.py profile-3d-contrib/*.svg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
