@@ -309,16 +309,25 @@ STACK = [  # (name, icon): a Simple Icons slug, "devicon:<path>", or "custom:age
      ("Java", "devicon:java/java-plain"), ("Bash", "gnubash"), ("PHP", "php"), ("Next.js", "nextdotjs"), ("React", "react"),
      ("three.js", "threedotjs"), ("Tailwind CSS", "tailwindcss")],
     [("PyTorch", "pytorch"), ("TensorFlow", "tensorflow"), ("Hugging Face", "huggingface"), ("scikit-learn", "scikitlearn"),
-     ("ONNX", "onnx"), ("Claude", "claude"), ("Gemini", "googlegemini"), ("MCP", "modelcontextprotocol"),
-     ("LangGraph", "langgraph"), ("Agent harnesses", "custom:agent"), ("Modal", "modal"), ("NumPy", "numpy"),
-     ("Polars", "polars"), ("Pydantic", "pydantic")],
-    [("Temporal", "temporal"), ("Spark", "apachespark"), ("Airflow", "apacheairflow"), ("BigQuery", "googlebigquery"),
+     ("XGBoost", "custom:xgboost"), ("ONNX", "onnx"), ("Claude", "claude"), ("Gemini", "googlegemini"),
+     ("OpenAI", "si13:openai"), ("LiteLLM", "custom:litellm"), ("MCP", "modelcontextprotocol"), ("LangGraph", "langgraph"),
+     ("Agent harnesses", "custom:agent"), ("Modal", "modal"), ("NumPy", "numpy"), ("Polars", "polars"), ("Pydantic", "pydantic")],
+    [("Temporal", "temporal"), ("Spark", "apachespark"), ("Airflow", "apacheairflow"), ("dbt", "si13:dbt"), ("BigQuery", "googlebigquery"),
      ("Parquet", "apacheparquet"), ("Arrow", "apachearrow"), ("DuckDB", "duckdb"), ("PostgreSQL", "postgresql"),
      ("Redis", "redis"), ("AWS", "devicon:amazonwebservices/amazonwebservices-plain-wordmark"), ("Google Cloud", "googlecloud"),
      ("Kubernetes", "kubernetes"), ("Docker", "docker"), ("Terraform", "terraform"), ("Helm", "helm"), ("Argo CD", "argo"),
      ("GitHub Actions", "githubactions"), ("Datadog", "datadog"), ("OpenTelemetry", "opentelemetry"), ("Vercel", "vercel"),
      ("Supabase", "supabase")],
 ]
+# Brands the current Simple Icons dropped (OpenAI, dbt): its 13.21.0 release, CC0 then, pinned
+SIMPLE_ICONS_13 = "https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/{}.svg"
+# XGBoost: the first tree of the project's own logo (xgboost.ai/images/logo/xgboost-logo.svg; XGBoost is Apache-2.0), its
+# five rings and four links redrawn as fills in a 24 box (the rings' holes wound against them, the links with them)
+XGBOOST_ICON = "M5.42 4.12A3.12 3.12 0 1 1 11.65 4.12A3.12 3.12 0 1 1 5.42 4.12ZM7.73 4.12A0.81 0.81 0 1 0 9.35 4.12A0.81 0.81 0 1 0 7.73 4.12ZM1.06 12.13A3.12 3.12 0 1 1 7.29 12.13A3.12 3.12 0 1 1 1.06 12.13ZM3.37 12.13A0.81 0.81 0 1 0 4.98 12.13A0.81 0.81 0 1 0 3.37 12.13ZM9.77 12.06A3.12 3.12 0 1 1 16.01 12.06A3.12 3.12 0 1 1 9.77 12.06ZM12.08 12.06A0.81 0.81 0 1 0 13.7 12.06A0.81 0.81 0 1 0 12.08 12.06ZM10.45 19.88A3.12 3.12 0 1 1 16.69 19.88A3.12 3.12 0 1 1 10.45 19.88ZM12.76 19.88A0.81 0.81 0 1 0 14.38 19.88A0.81 0.81 0 1 0 12.76 19.88ZM16.71 16.33A3.12 3.12 0 1 1 22.94 16.33A3.12 3.12 0 1 1 16.71 16.33ZM19.02 16.33A0.81 0.81 0 1 0 20.63 16.33A0.81 0.81 0 1 0 19.02 16.33ZM8.32 6.23L5.86 10.73L3.83 9.62L6.3 5.12ZM10.78 5.44L13.14 9.72L11.12 10.84L8.76 6.55ZM14.13 14.53L13.49 18.71L11.2 18.35L11.85 14.18ZM15.22 11.71L19.5 13.86L18.47 15.92L14.19 13.78Z"
+# LiteLLM: its monogram, traced from the project's own (BerriAI/litellm, litellm/proxy/logo_monogram.png; MIT) into a 24
+# box, the rounded tile with the bullet train cut out of it (even-odd)
+LITELLM_ICON = "M1.65 23.85C1.35 23.75 1.05 23.56 0.75 23.26C0.13 22.63 -0 22.17 -0 20.51L0 19.22L9.7 19.22C20.09 19.22 20.75 19.19 22.13 18.74C22.87 18.5 23.19 18.34 23.65 17.98L24 17.7L24 19.76C24 22.05 23.93 22.44 23.44 23.05C23.27 23.27 22.92 23.54 22.61 23.69L22.08 23.95L12.09 23.97C3.44 23.99 2.05 23.97 1.65 23.85ZM21.47 16.04C21.47 14.44 21.44 13.88 21.35 13.81C21.16 13.66 19.34 12.88 18.23 12.47C15.08 11.3 9.76 10.01 6.09 9.51C5.39 9.42 3.94 9.34 2.46 9.31L0 9.26L0 9.03L0 8.81L1.99 8.81C5.08 8.81 7.03 9.04 10.42 9.8C16.55 11.17 21.77 13.14 23.45 14.72L24 15.24L24 16.09C24 16.89 23.99 16.95 23.74 17.17C23.6 17.3 23.34 17.5 23.16 17.6C22.84 17.79 21.76 18.19 21.57 18.19C21.5 18.19 21.47 17.45 21.47 16.04ZM0.07 17.01C0.03 16.97 -0 16.82 -0 16.67L0 16.41L2.19 16.41C3.39 16.41 5.7 16.38 7.33 16.34L10.28 16.28L10.49 16.58C10.61 16.75 10.69 16.9 10.67 16.92C10.6 16.98 0.14 17.07 0.07 17.01ZM14.27 16.29C14.21 16.23 14.16 16.09 14.16 15.98C14.16 15.58 14.26 15.56 16.85 15.56L19.32 15.56L19.42 15.79C19.49 15.95 19.49 16.06 19.41 16.21C19.31 16.4 19.26 16.41 16.84 16.41C15.05 16.41 14.35 16.38 14.27 16.29ZM0.04 15.82C0.02 15.75 0.01 14.73 0.02 13.54L0.05 11.39L3.34 11.37C6.37 11.34 6.65 11.35 6.83 11.51C6.94 11.6 7.7 12.6 8.52 13.73L10.01 15.8L7.65 15.85C3.14 15.96 0.09 15.95 0.04 15.82ZM23.48 14.15C22.82 13.47 21.11 12.2 18.66 10.57C13.28 6.99 10.34 5.67 6.23 5.01C5.11 4.82 2.06 4.77 0.72 4.9L-0.02 4.98L0.02 3.36C0.05 1.5 0.13 1.24 0.86 0.62C1.61 -0.03 1.12 -0 12.04 0C18.54 0 22.01 0.03 22.24 0.1C22.77 0.25 23.36 0.75 23.67 1.32L23.95 1.83L23.98 6.98C23.99 9.82 23.99 12.7 23.98 13.39L23.95 14.63L23.48 14.15ZM14.3 9.88C11.18 8.93 9.14 8.43 6.74 8.02C4.89 7.71 3.44 7.58 1.58 7.56L0 7.55L0 6.55C0 5.59 0.01 5.54 0.21 5.48C0.63 5.34 4.32 5.41 5.58 5.57C8.68 5.97 11.74 6.96 14.37 8.41C15.41 8.99 16.88 9.94 16.88 10.04C16.88 10.09 16.46 10.12 15.96 10.12C15.27 10.12 14.87 10.06 14.3 9.88Z"
+CUSTOM = {"custom:xgboost": (XGBOOST_ICON, "nonzero"), "custom:litellm": (LITELLM_ICON, "evenodd")}
 # A terminal for the agent harnesses (no brand owns the idea): a rounded frame, a chevron and a cursor, in a 24 box
 AGENT_ICON = ("M5 3H19A4 4 0 0 1 23 7V17A4 4 0 0 1 19 21H5A4 4 0 0 1 1 17V7A4 4 0 0 1 5 3Z"
               "M5.5 5A2.5 2.5 0 0 0 3 7.5V16.5A2.5 2.5 0 0 0 5.5 19H18.5A2.5 2.5 0 0 0 21 16.5V7.5A2.5 2.5 0 0 0 18.5 5Z"
@@ -330,6 +339,11 @@ def icon(src):
     """(path data, box size) of a brand icon."""
     if src == "custom:agent":
         return AGENT_ICON, 24.0
+    if src in CUSTOM:
+        return CUSTOM[src][0], 24.0
+    if src.startswith("si13:"):
+        svg_ = urllib.request.urlopen(SIMPLE_ICONS_13.format(src[5:])).read().decode()
+        return " ".join(re.findall(r'<path[^>]*\sd="([^"]+)"', svg_)), 24.0
     url = DEVICON.format(src.split(":", 1)[1]) if src.startswith("devicon:") else SIMPLE_ICONS.format(src)
     svg_ = urllib.request.urlopen(url).read().decode()
     box = float(re.search(r'viewBox="0 0 ([0-9.]+)', svg_).group(1))
@@ -350,7 +364,7 @@ def stack():
             if src not in seen:
                 d, box = icon(src)
                 seen[src] = (f"i{len(seen)}", box)
-                rule = ' fill-rule="evenodd"' if src.startswith("custom:") else ""
+                rule = ' fill-rule="evenodd"' if src == "custom:agent" or CUSTOM.get(src, ("", ""))[1] == "evenodd" else ""
                 defs.append(f'<path id="{seen[src][0]}" d="{d}"{rule}/>')
             iid, box = seen[src]
             seq.append(f'<use href="#{iid}" transform="translate({num(x)} {num(base - ic + 4)}) scale({num(ic / box)})"/>')
