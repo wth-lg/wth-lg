@@ -1,8 +1,8 @@
-<!-- wth-lg's profile README. assets/build.py draws the images in assets/ (scripts/daily.py draws stats.svg and restyles
-     the 3D calendar every day, .github/workflows/profile-3d.yml; the snake is .github/workflows/snake.yml). The design is
-     wentao.gg's: Space Grotesk and JetBrains Mono, ink, paper and one blue, a 100 ms beat; build.py's docstring has it. -->
+<!-- wth-lg's profile README. assets/build.py draws the images in assets/; scripts/daily.py draws stats.svg and restyles the
+     3D calendar every day (.github/workflows/profile-3d.yml). The design is wentao.gg's: Space Grotesk and JetBrains Mono,
+     ink, paper and one blue, a 100 ms beat (build.py's docstring). Nothing here repeats wentao.gg or GitHub's own profile. -->
 
-<a href="https://wentao.gg"><img src="./assets/banner.svg" width="100%" alt="Wentao He: Engineering Lead at Mercor, San Francisco. Engineer, developer, photographer, powerlifter." /></a>
+<a href="https://wentao.gg"><img src="./assets/banner.svg" width="100%" alt="Wentao He: Engineering Lead, Multimodal at Mercor. Engineer, developer, photographer, powerlifter." /></a>
 
 <p align="center">
   <a href="https://wentao.gg"><img src="./assets/link-site.svg" alt="wentao.gg" /></a>&nbsp;
@@ -10,23 +10,18 @@
   <a href="mailto:me@wentao.gg"><img src="./assets/link-email.svg" alt="me@wentao.gg" /></a>
 </p>
 
-<img src="./assets/h-about.svg" width="100%" alt="01 About: $ whoami --verbose" />
-<a href="https://wentao.gg"><img src="./assets/about.svg" width="100%" alt="Now: Engineering Lead, Applied AI at Mercor, 2026 to now, San Francisco. Before: Data Engineer at Meta, 2024 to 2026, New York; Software Engineer at Cherre, 2022 to 2024, New York; Software Engineer at Mashey, 2021 to 2022, remote; Machine Learning Engineer at Jefferson Street Technologies, 2020 to 2021, remote. Studied: MS Robotics (AI) at the University of Pennsylvania; MS and BS Mechanical Engineering at Carnegie Mellon University. Off-hours: powerlifting, photography." /></a>
+<img src="./assets/h-about.svg" width="100%" alt="01 About: $ python3 -i wentao.py" />
+<a href="https://wentao.gg"><img src="./assets/about.svg" width="100%" alt="&gt;&gt;&gt; wentao.multimodal → ['text', 'docs', 'tables', 'images', 'audio', 'video']; &gt;&gt;&gt; wentao.everything_else → 'https://wentao.gg' (experience, projects, lifting tools)" /></a>
 
 <img src="./assets/h-stack.svg" width="100%" alt="02 Stack: $ ls ~/stack" />
-<img src="./assets/stack.svg" width="100%" alt="Python, TypeScript, Go, Java, React, Next.js, three.js, Tailwind, Node.js, Postgres, GCP, AWS, Docker, Kubernetes, PyTorch, TensorFlow, Vercel, Supabase" />
+<img src="./assets/stack.svg" width="100%" alt="Stack, from his merged pull requests: Go, Python, Rust, TypeScript, Temporal, Parquet, Arrow, Polars, Pydantic, NumPy, Pytest, Claude, Gemini; running on AWS, Google Cloud, Kubernetes, Docker, NVIDIA, Terraform, Helm, Argo CD, GitHub Actions, Datadog, OpenTelemetry, Vault, Redis, DuckDB" />
 
 <img src="./assets/h-activity.svg" width="100%" alt="03 Activity: $ git log --since=1y" />
-<img src="./assets/stats.svg" width="100%" alt="Contributions, the current streak, the best day and the active days of the last year, redrawn daily." />
+<img src="./assets/stats.svg" width="100%" alt="The current streak, the best day, the active days and the contributions per active day of the last year, redrawn daily." />
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-green.svg" />
   <img src="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" width="100%" alt="3D contribution calendar, with contributions by weekday" />
-</picture>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake.svg" />
-  <img src="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake-dark.svg" width="100%" alt="a snake eating the contribution calendar" />
 </picture>
 
 <img src="./assets/footer.svg" width="100%" alt="wentao@sf ~ $ exit. © 2026 Wentao He, San Francisco." />

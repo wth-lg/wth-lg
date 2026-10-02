@@ -19,6 +19,7 @@ import io
 import json
 import math
 import random
+import re
 import urllib.request
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -251,81 +252,110 @@ def header(index, title, command, seed):
                doc.render() + body)
 
 
-ROWS = [  # (group, name, role, years, place): wentao.gg's app/lib/content/experience.ts and education.ts
-    ("NOW", "Mercor", "Engineering Lead, Applied AI", "2026–NOW", "San Francisco"),
-    ("BEFORE", "Meta", "Data Engineer", "2024–26", "New York"),
-    ("", "Cherre", "Software Engineer", "2022–24", "New York"),
-    ("", "Mashey", "Software Engineer", "2021–22", "Remote"),
-    ("", "Jefferson Street Technologies", "Machine Learning Engineer", "2020–21", "Remote"),
-    ("STUDIED", "University of Pennsylvania", "MS Robotics (AI)", "", "Philadelphia"),
-    ("", "Carnegie Mellon University", "MS, BS Mechanical Engineering", "", "Pittsburgh"),
-    ("OFF-HOURS", "Powerlifting, photography", "", "", ""),
+REPL = [  # (prompt, code, result, comment): the About, short, pointing at wentao.gg for the long version
+    (">>> ", "wentao.multimodal", "['text', 'docs', 'tables', 'images', 'audio', 'video']", ""),
+    (">>> ", "wentao.everything_else", "'https://wentao.gg'", "  # experience, projects, lifting tools"),
 ]
 
 
 def about():
+    """A Python session: what Multimodal means, then where everything else lives. Commands type, results land a beat later."""
     doc = Doc()
-    rh, top = 44, 6
-    H = top + rh * len(ROWS) + 8
-    body, clips = [], []
-    for i, (grp, name, role, years, place) in enumerate(ROWS):
-        y0 = top + i * rh
-        base = y0 + 28
-        t = 0.2 + i * BEAT
-        clips.append(f'<clipPath id="r{i}"><rect x="0" y="{y0}" width="{W}" height="{rh}"/></clipPath>')
-        row = []
-        if grp:
-            row.append(doc.text("jb500", grp, 0, base - 1, 11.5, "ac" if grp == "NOW" else "mu", tracking=0.1)[0])
-        row.append(doc.text("sg500", name, 128, base, 19, "fg")[0])
-        if role:
-            row.append(doc.text("sg400", role, 420, base, 15.5, "mu")[0])
-        meta = "  ·  ".join(v for v in (years, place.upper()) if v)
-        if meta:
-            row.append(doc.text("jb400", meta, W, base - 1, 11.5, "mu", anchor="end", tracking=0.06)[0])
-        body.append(f'<g clip-path="url(#r{i})"><g style="animation:rise .7s cubic-bezier(.2,.8,.2,1) {num(t)}s both">'
-                    + "".join(row) + "</g></g>")
-        if i < len(ROWS) - 1 and ROWS[i + 1][0]:
-            body.append(hairline(0, y0 + rh, W, t + 0.15, 0.9))
-    body.append(hairline(0, H - 1.5, W, 0.2 + len(ROWS) * BEAT, 0.9))
-    alt = "; ".join(", ".join(v for v in (f"{g}: {n}" if g else n, r, y, p) if v) for g, n, r, y, p in ROWS)
-    return svg(W, H, "About Wentao He", alt, doc.render("".join(clips)) + "".join(body))
+    size, lh, x0, top = 15, 30, 26, 46
+    H = top + lh * (2 * len(REPL) + 1) - 2
+    body = [f'<rect class="shl" x=".75" y=".75" width="{W - 1.5}" height="{H - 1.5}" rx="12" fill="none" stroke-width="1.5"/>',
+            doc.text("jb400", "python3", W - 22, 28, 11.5, "mu", anchor="end", tracking=0.06)[0]]
+    t, y = 0.25, top
+
+    def tokens(s):  # strings blue, punctuation muted, the rest paper
+        for m in re.finditer(r"'[^']*'|[\[\](),.]|[^'\[\](),.]+", s):
+            tok = m.group(0)
+            yield tok, ("st" if tok.startswith("'") else "mu" if tok in "[](),." else "fg")
+    for prompt, code, result, comment in REPL:
+        body.append(doc.text("jb400", prompt, x0, y, size, "ac", attrs=f' style="{wait(t)}"')[0])
+        pw = shape("jb400", prompt, size)[1]
+        typed_code, cw, t = typed(doc, "jb400", code, x0 + pw, y, size, t + 0.15, 0.04, "fg")
+        body.append(typed_code)
+        t += 0.25
+        y += lh
+        x = x0
+        parts = []
+        for tok, cls in tokens(result):
+            g_, _, w_ = doc.text("jb400", tok, x, y, size, cls)
+            parts.append(g_)
+            x += w_
+        if comment:
+            parts.append(doc.text("jb400", comment, x, y, size, "mu")[0])
+        body.append(f'<g style="{wait(t)}">' + "".join(parts) + "</g>")
+        t += 0.35
+        y += lh
+    body.append(doc.text("jb400", ">>> ", x0, y, size, "ac", attrs=f' style="{wait(t)}"')[0])
+    body.append(cursor(x0 + shape("jb400", ">>> ", size)[1], y - 12.5, 9, 16, t))
+    alt = " ".join(f"{p}{c} → {r}{cm}" for p, c, r, cm in REPL)
+    css = ".st{fill:#93c5fd}@media (prefers-color-scheme: light){.st{fill:#1d4ed8}}"
+    return svg(W, H, "About: a Python session", alt, doc.render() + "".join(body), css)
 
 
-STACK = [["Python", "TypeScript", "Go", "Java", "React", "Next.js", "three.js", "Tailwind", "Node.js"],
-         ["Postgres", "GCP", "AWS", "Docker", "Kubernetes", "PyTorch", "TensorFlow", "Vercel", "Supabase"]]
+# Simple Icons (CC0) and, where a brand left it (AWS), Devicon (MIT); pinned, fetched at build time, drawn in the theme's ink
+SIMPLE_ICONS = "https://cdn.jsdelivr.net/npm/simple-icons@16.33.0/icons/{}.svg"
+DEVICON = "https://cdn.jsdelivr.net/gh/devicons/devicon@2.17.0/icons/{}.svg"
+STACK = [  # (name, icon): a Simple Icons slug, or "devicon:<path>". From his 1,428 merged PRs in Mercor-io (2026-04 to 10),
+    # weighted by the PRs whose files use each; the languages lead (Go 645 PRs, Python 444, Rust 268; TypeScript is wentao.gg's)
+    [("Go", "go"), ("Python", "python"), ("Rust", "rust"), ("TypeScript", "typescript"), ("Temporal", "temporal"),
+     ("Parquet", "apacheparquet"), ("Arrow", "apachearrow"), ("Polars", "polars"), ("Pydantic", "pydantic"),
+     ("NumPy", "numpy"), ("Pytest", "pytest"), ("Claude", "claude"), ("Gemini", "googlegemini")],
+    [("AWS", "devicon:amazonwebservices/amazonwebservices-plain-wordmark"), ("Google Cloud", "googlecloud"),
+     ("Kubernetes", "kubernetes"), ("Docker", "docker"), ("NVIDIA", "nvidia"), ("Terraform", "terraform"), ("Helm", "helm"),
+     ("Argo CD", "argo"), ("GitHub Actions", "githubactions"), ("Datadog", "datadog"), ("OpenTelemetry", "opentelemetry"),
+     ("Vault", "vault"), ("Redis", "redis"), ("DuckDB", "duckdb")],
+]
+
+
+def icon(src):
+    """(path data, box size) of a brand icon."""
+    url = DEVICON.format(src.split(":", 1)[1]) if src.startswith("devicon:") else SIMPLE_ICONS.format(src)
+    svg_ = urllib.request.urlopen(url).read().decode()
+    box = float(re.search(r'viewBox="0 0 ([0-9.]+)', svg_).group(1))
+    return " ".join(re.findall(r'<path[^>]*\sd="([^"]+)"', svg_)), box
 
 
 def stack():
+    """Two rows of brand icons and names rolling past in opposite directions, the second row quieter."""
     doc = Doc()
-    H, size, gap = 128, 40, 34
-    rows, css, seqs = [], [], []
-    for r, names in enumerate(STACK):
-        base = 46 + r * 62
+    H, size, ic, gap = 132, 22, 28, 46
+    rows, css, defs = [], [], []
+    seen = {}
+    for r, items in enumerate(STACK):
+        base = 50 + r * 60
         x, seq = 0.0, []
-        for n in names:
-            g_, _, w = doc.text("sg700", n, x, base, size)
+        for name, src in items:
+            if src not in seen:
+                d, box = icon(src)
+                seen[src] = (f"i{len(seen)}", box)
+                defs.append(f'<path id="{seen[src][0]}" d="{d}"/>')
+            iid, box = seen[src]
+            s = ic / box
+            seq.append(f'<use href="#{iid}" transform="translate({num(x)} {num(base - ic + 4)}) scale({num(s)})"/>')
+            g_, _, w = doc.text("sg500", name, x + ic + 11, base, size)
             seq.append(g_)
-            x += w + gap / 2
-            seq.append(hepta_at(x, base - size * 0.34, 9, "bl"))
-            x += gap / 2
+            x += ic + 11 + w + gap
         period = x
-        cls = "fg" if r == 0 else "smu"
-        seqs.append(f'<g id="row{r}" class="{cls}"{"" if r == 0 else " fill=" + chr(34) + "none" + chr(34) + " stroke-width=" + chr(34) + "1.1" + chr(34)}>{"".join(seq)}</g>')
+        defs.append(f'<g id="row{r}" class="{"fg" if r == 0 else "mu"}">{"".join(seq)}</g>')
         copies = math.ceil(W / period) + 1
         uses = "".join(f'<use href="#row{r}" x="{num(k * period)}"/>' for k in range(copies))
-        dur = period / 26  # about 26 px a second
+        dur = period / 30  # about 30 px a second
         if r == 0:
             css.append(f"@keyframes drift0{{to{{transform:translateX(-{num(period)}px)}}}}")
         else:
             css.append(f"@keyframes drift1{{from{{transform:translateX(-{num(period)}px)}}to{{transform:translateX(0)}}}}")
         rows.append(f'<g mask="url(#fade)"><g style="animation:drift{r} {num(dur)}s linear infinite">{uses}</g></g>')
     fade = ('<linearGradient id="fd" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/>'
-            '<stop offset=".09" stop-color="#fff"/><stop offset=".91" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>'
+            '<stop offset=".08" stop-color="#fff"/><stop offset=".92" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>'
             f'</linearGradient><mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{H}">'
             f'<rect width="{W}" height="{H}" fill="url(#fd)"/></mask>')
-    alt = ", ".join(STACK[0] + STACK[1])
-    return svg(W, H, "Stack: " + alt, "Two rows of names drift past in opposite directions in Space Grotesk, the second "
-               "outlined, wentao.gg's heptadecagon between them.", doc.render(fade + "".join(seqs)) + "".join(rows), "".join(css))
+    names = [n for row in STACK for n, _ in row]
+    return svg(W, H, "Stack: " + ", ".join(names), "Two rows of brand icons and names roll past in opposite directions.",
+               doc.render(fade + "".join(defs)) + "".join(rows), "".join(css))
 
 
 def link(label, icon=False, delay=0.0):
@@ -379,7 +409,7 @@ def banner(seed=17):
     p_cmd, _, _ = line("jb400", "whoami", x_cmd, 122, 22)
     p_name, _, _ = line("jb700", "Wentao He", LX - 3, 204, 78)
     p_pre, xp0, wp = line("jb400", "// ", LX, 250, 19)
-    p_a, _, _ = line("jb400", "Engineering Lead @ Mercor · San Francisco", xp0 + wp, 250, 19)
+    p_a, _, _ = line("jb400", "Engineering Lead, Multimodal @ Mercor", xp0 + wp, 250, 19)
     p_b, _, _ = line("jb400", "engineer · developer · photographer · powerlifter", xp0 + wp, 250, 19)
     p_title, _, _ = line("jb400", "wentao@sf: ~ — zsh", WX + WW / 2, WY + 22, 13, anchor="middle")
     adv = lambda size: 0.6 * size
@@ -475,7 +505,7 @@ def banner(seed=17):
 {sp(p_title, "#8b8b94")}{sp(p_user, "#60a5fa")}{sp(p_path, "#8b8b94")}{sp(p_dollar, "#e8e8e2")}
 {g_cmd}<g filter="url(#glow)">{g_name}</g>{g_cmt}{cursor_el}
 </g>"""
-    return svg(BW, BH, "Wentao He", "A terminal types whoami, then Wentao He, then // Engineering Lead @ Mercor · San Francisco, "
+    return svg(BW, BH, "Wentao He", "A terminal types whoami, then Wentao He, then // Engineering Lead, Multimodal @ Mercor, "
                "which it deletes and retypes as // engineer · developer · photographer · powerlifter; JetBrains Mono, a "
                "blinking cursor, falling code symbols behind.", body, style, dark_card=True)
 
@@ -527,7 +557,7 @@ def kit():
 if __name__ == "__main__":
     files = {
         "banner.svg": banner(),
-        "h-about.svg": header("01", "About", "whoami --verbose", 1),
+        "h-about.svg": header("01", "About", "python3 -i wentao.py", 1),
         "h-stack.svg": header("02", "Stack", "ls ~/stack", 2),
         "h-activity.svg": header("03", "Activity", "git log --since=1y", 3),
         "about.svg": about(),
