@@ -136,11 +136,12 @@ def stats_svg(s):
     size, step = KIT["size"], KIT["size"] * 1.25
     base = 66
     day = lambda iso: f"{date.fromisoformat(iso):%b %-d, %Y}".upper()
+    # no total: the 3D image's headline and GitHub's own calendar under the README already show it
     cells = [
-        (s["total"], "CONTRIBUTIONS", f"SINCE {day(s['first'])}"),
         (s["current"], "DAY STREAK", "LONGEST YET" if s["current"] and s["current"] == s["longest"] else f"LONGEST {s['longest']}"),
         (s["best"], "BEST DAY", day(s["best_date"])),
-        (s["active"], "ACTIVE DAYS", f"OF {s['span']}"),
+        (s["active"], "ACTIVE DAYS", f"OF THE LAST {s['span']}"),
+        (round(s["total"] / max(s["active"], 1)), "PER ACTIVE DAY", "CONTRIBUTIONS"),
     ]
     body, chars = [], set()
     for k, (value, label, detail) in enumerate(cells):
@@ -160,8 +161,9 @@ def stats_svg(s):
             "".join(f'<path id="m{ord(ch)}" d="{KIT["mono"]["glyphs"][ch]}"/>' for ch in sorted(chars)),
             f'<clipPath id="cl"><rect x="0" y="{num(base - size * 0.82)}" width="{W}" height="{num(size * 1.0)}"/></clipPath>']
     rolls = "".join(f"@keyframes r{d}{{from{{transform:translateY(0)}}to{{transform:translateY({num(-d * step)}px)}}}}" for d in range(10))
-    alt = (f"{s['total']:,} contributions in the last {s['span']} days; a {s['current']}-day streak (the longest "
-           f"{s['longest']}); the best day {s['best']} on {s['best_date']}; {s['active']} active days of {s['span']}.")
+    alt = (f"A {s['current']}-day streak (the longest {s['longest']}); the best day {s['best']} contributions on "
+           f"{s['best_date']}; {s['active']} active days of the last {s['span']}; "
+           f"{round(s['total'] / max(s['active'], 1))} contributions per active day.")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
             f'aria-labelledby="t"><title id="t">{alt}</title><!-- Drawn daily by scripts/daily.py. -->\n'
             f'<style>{KIT["css"]}{rolls}</style>\n<defs>{"".join(defs)}</defs>{"".join(body)}\n</svg>\n')
@@ -258,6 +260,12 @@ def rewrite(path, s):
     for c in list(root):  # the language donut: the tool's group at translate(40, 520)
         if (c.get("transform") or "").replace(" ", "") == "translate(40,520)":
             root.remove(c)
+    for c in list(root):  # the star and fork counters beside the headline: the public repos' zeros, no information
+        texts = [t.text or "" for t in c.iter(f"{{{NS}}}text")]
+        if "contributions" in texts:
+            for k in list(c):
+                if k.tag == f"{{{NS}}}g" or (k.tag == f"{{{NS}}}text" and k.find(f"{{{NS}}}title") is not None):
+                    c.remove(k)
     theme = "dark" if "night" in Path(path).name else "light"
     el("style", {}, theme_css(theme), parent=root)
     tree.write(path, encoding="unicode")
