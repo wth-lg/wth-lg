@@ -1,62 +1,34 @@
-<!-- wth-lg's profile README. The palette is wentao.gg's: ink #0b0d12, paper #e8e8e2, blue #2563eb. The banner is
-     assets/banner.svg, a terminal typed in JetBrains Mono; assets/banner.py regenerates it. The wentao.gg badge's
-     logo is the site's own heptadecagon (app/icon.svg's path, filled #e8e8e2), embedded as a data URI.
-     The 3D calendar (profile-3d-contrib/) and the snake (the output branch) are redrawn by this repo's workflows. -->
+<!-- wth-lg's profile README. assets/build.py draws the images in assets/ (scripts/daily.py draws stats.svg and restyles
+     the 3D calendar every day, .github/workflows/profile-3d.yml; the snake is .github/workflows/snake.yml). The design is
+     wentao.gg's: Space Grotesk and JetBrains Mono, ink, paper and one blue, a 100 ms beat; build.py's docstring has it. -->
+
+<a href="https://wentao.gg"><img src="./assets/banner.svg" width="100%" alt="Wentao He: Engineering Lead at Mercor, San Francisco. Engineer, developer, photographer, powerlifter." /></a>
 
 <p align="center">
-  <a href="https://wentao.gg">
-    <img src="./assets/banner.svg" width="100%" alt="Wentao He: Engineering Lead at Mercor, San Francisco. Engineer, developer, photographer, powerlifter." />
-  </a>
+  <a href="https://wentao.gg"><img src="./assets/link-site.svg" alt="wentao.gg" /></a>&nbsp;
+  <a href="https://www.linkedin.com/in/wthe/"><img src="./assets/link-linkedin.svg" alt="LinkedIn" /></a>&nbsp;
+  <a href="mailto:me@wentao.gg"><img src="./assets/link-email.svg" alt="me@wentao.gg" /></a>
 </p>
 
-<p align="center">
-  <a href="https://wentao.gg"><img src="https://img.shields.io/badge/wentao.gg-0b0d12?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBmaWxsPSIjZThlOGUyIiBkPSJNIDQ3LjU0IDkuNDYgUSA1MC4wMCA5LjAwIDUyLjQ2IDkuNDYgTCA2Mi4zNSAxMS4zMSBRIDY0LjgxIDExLjc3IDY2Ljk0IDEzLjA4IEwgNzUuNTAgMTguMzggUSA3Ny42MiAxOS43MCA3OS4xMyAyMS43MCBMIDg1LjIwIDI5LjczIFEgODYuNzAgMzEuNzIgODcuMzkgMzQuMTMgTCA5MC4xNCA0My44MSBRIDkwLjgzIDQ2LjIyIDkwLjU5IDQ4LjcxIEwgODkuNjcgNTguNzMgUSA4OS40MyA2MS4yMiA4OC4zMiA2My40NiBMIDgzLjgzIDcyLjQ3IFEgODIuNzIgNzQuNzEgODAuODcgNzYuMzkgTCA3My40MyA4My4xNyBRIDcxLjU4IDg0Ljg2IDY5LjI1IDg1Ljc2IEwgNTkuODYgODkuNDAgUSA1Ny41MyA5MC4zMCA1NS4wMyA5MC4zMCBMIDQ0Ljk3IDkwLjMwIFEgNDIuNDcgOTAuMzAgNDAuMTQgODkuNDAgTCAzMC43NSA4NS43NiBRIDI4LjQyIDg0Ljg2IDI2LjU3IDgzLjE3IEwgMTkuMTMgNzYuMzkgUSAxNy4yOCA3NC43MSAxNi4xNyA3Mi40NyBMIDExLjY4IDYzLjQ2IFEgMTAuNTcgNjEuMjIgMTAuMzMgNTguNzMgTCA5LjQxIDQ4LjcxIFEgOS4xNyA0Ni4yMiA5Ljg2IDQzLjgxIEwgMTIuNjEgMzQuMTMgUSAxMy4zMCAzMS43MiAxNC44MCAyOS43MyBMIDIwLjg3IDIxLjcwIFEgMjIuMzggMTkuNzAgMjQuNTAgMTguMzggTCAzMy4wNiAxMy4wOCBRIDM1LjE5IDExLjc3IDM3LjY1IDExLjMxIFoiLz48L3N2Zz4%3D" alt="wentao.gg" /></a>
-  <a href="https://www.linkedin.com/in/wthe/"><img src="https://img.shields.io/badge/LinkedIn-2563eb?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" /></a>
-  <a href="mailto:me@wentao.gg"><img src="https://img.shields.io/badge/me%40wentao.gg-13213f?style=for-the-badge&logo=maildotru&logoColor=e8e8e2" alt="me@wentao.gg" /></a>
-  <img src="https://komarev.com/ghpvc/?username=wth-lg&label=peeks&color=2563eb&style=for-the-badge" alt="profile peeks" />
-</p>
+<img src="./assets/h-about.svg" width="100%" alt="01 About: $ whoami --verbose" />
+<a href="https://wentao.gg"><img src="./assets/about.svg" width="100%" alt="Now: Engineering Lead, Applied AI at Mercor, 2026 to now, San Francisco. Before: Data Engineer at Meta, 2024 to 2026, New York; Software Engineer at Cherre, 2022 to 2024, New York; Software Engineer at Mashey, 2021 to 2022, remote; Machine Learning Engineer at Jefferson Street Technologies, 2020 to 2021, remote. Studied: MS Robotics (AI) at the University of Pennsylvania; MS and BS Mechanical Engineering at Carnegie Mellon University. Off-hours: powerlifting, photography." /></a>
 
----
+<img src="./assets/h-stack.svg" width="100%" alt="02 Stack: $ ls ~/stack" />
+<img src="./assets/stack.svg" width="100%" alt="Python, TypeScript, Go, Java, React, Next.js, three.js, Tailwind, Node.js, Postgres, GCP, AWS, Docker, Kubernetes, PyTorch, TensorFlow, Vercel, Supabase" />
 
-### 👋 hi, i'm wentao
+<img src="./assets/h-activity.svg" width="100%" alt="03 Activity: $ git log --since=1y" />
+<img src="./assets/stats.svg" width="100%" alt="Contributions, the current streak, the best day and the active days of the last year, redrawn daily." />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-green.svg" />
+  <img src="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" width="100%" alt="3D contribution calendar, with contributions by weekday" />
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake.svg" />
+  <img src="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake-dark.svg" width="100%" alt="a snake eating the contribution calendar" />
+</picture>
 
-- 🛠️ **Engineering Lead at [Mercor](https://www.mercor.com/)** in San Francisco, building data infrastructure
-- 🧭 before that: data engineer at **Meta**, software engineer at **Cherre** and **Mashey**, ML engineer at **Jefferson Street Technologies**
-- 🎓 MS Robotics (Artificial Intelligence) at **Penn** · MS Mechanical Engineering at **Carnegie Mellon**
-- 🏋️ off the keyboard: powerlifting and photography
-- 🌐 everything else lives at **[wentao.gg](https://wentao.gg)**
+<img src="./assets/footer.svg" width="100%" alt="wentao@sf ~ $ exit. © 2026 Wentao He, San Francisco." />
 
-### 🧰 stack
-
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=python,ts,go,java,react,nextjs,threejs,tailwind,nodejs,postgres,gcp,aws,docker,kubernetes,pytorch,tensorflow,vercel,supabase&theme=dark&perline=9" alt="Python, TypeScript, Go, Java, React, Next.js, three.js, Tailwind, Node.js, Postgres, GCP, AWS, Docker, Kubernetes, PyTorch, TensorFlow, Vercel, Supabase" />
-</p>
-
-### 📈 activity
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-green.svg" />
-    <img src="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" alt="3D contribution calendar" />
-  </picture>
-</p>
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&disable_animations=true&background=0B0D12&stroke=13213F&ring=2563EB&fire=60A5FA&currStreakNum=E8E8E2&sideNums=E8E8E2&currStreakLabel=60A5FA&sideLabels=8B8B94&dates=8B8B94" />
-    <img src="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&disable_animations=true&ring=2563EB&fire=2563EB&currStreakLabel=2563EB" alt="contribution streak" />
-  </picture>
-</p>
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake.svg" />
-    <img src="https://raw.githubusercontent.com/wth-lg/wth-lg/output/github-snake-dark.svg" alt="a snake eating the contribution calendar" />
-  </picture>
-</p>
-
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=110&color=0:2563eb,45:13213f,100:0b0d12&section=footer" width="100%" alt="" />
-</p>
+<p align="center"><img src="https://komarev.com/ghpvc/?username=wth-lg&label=peeks&color=2563eb&style=flat-square" alt="profile peeks" /></p>

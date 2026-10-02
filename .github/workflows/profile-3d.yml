@@ -1,7 +1,8 @@
 # The 3D contribution calendar for the profile README (profile-3d-contrib/*.svg), redrawn daily from wth-lg's
-# contribution calendar (private contributions are counted where the profile shows them). The tool's radar and
-# language donut see only public work, so scripts/weekday_radar.py swaps the radar for contributions by weekday,
-# which add up to the headline, and drops the donut.
+# contribution calendar (private contributions are counted where the profile shows them). scripts/daily.py then
+# draws assets/stats.svg from the same calendar and restyles the images: the tool's radar and language donut see only
+# public work, so the radar becomes contributions by weekday (they add up to the headline) and the donut goes; the
+# colours and type become wentao.gg's.
 name: profile-3d
 
 on:
@@ -22,8 +23,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
-      - name: Plot contributions by weekday in place of the radar
-        run: python3 scripts/weekday_radar.py profile-3d-contrib/*.svg
+      - name: Draw the stats and restyle the 3D images
+        run: python3 scripts/daily.py profile-3d-contrib/*.svg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
@@ -31,7 +32,7 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add -A profile-3d-contrib
-          if git commit -m "Redraw the 3D contribution calendar"; then
+          git add -A profile-3d-contrib assets/stats.svg
+          if git commit -m "Redraw the 3D contribution calendar and the stats"; then
             git push
           fi
