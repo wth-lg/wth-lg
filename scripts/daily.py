@@ -2,7 +2,8 @@
 
     GITHUB_TOKEN=... USERNAME=wth-lg python3 scripts/daily.py profile-3d-contrib/*.svg
 
-It reads the contribution calendar, whose daily totals count private work, and then:
+It reads the contribution calendar every visitor sees under the README (signed out, so UTC days; its daily totals count
+private work; GraphQL is the fallback), and then:
   - assets/stats.svg: the last year's contributions, the current and longest streak and the active days, in Space
     Grotesk numerals that roll into place, drawn from assets/kit.json (assets/build.py makes it), so no font tools here;
   - each 3D image (github-profile-3d-contrib): its Commit / Issue / PullReq / Review / Repo radar becomes contributions
@@ -13,6 +14,7 @@ It reads the contribution calendar, whose daily totals count private work, and t
 import json
 import math
 import os
+import re
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -27,7 +29,33 @@ DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]  # clockwise from the t
 R_OUT, R_LABEL = 156, 194  # the tool's outer ring; the labels sit just outside it
 
 
-def calendar(user, token):
+def public_calendar(user):
+    """The calendar every visitor sees under the README: github.com/users/<user>/contributions, read signed out.
+
+    The GraphQL calendar counts fewer contributions (7,798 against the page's 8,075 on 2026-10-02: it drops some private
+    organisation work) and splits days by the viewer, so this is the source; the per-day tooltips must add up to the
+    page's own "N contributions in the last year", or it falls back to GraphQL."""
+    req = urllib.request.Request(f"https://github.com/users/{user}/contributions", headers={"User-Agent": "wth-lg-profile"})
+    page = urllib.request.urlopen(req).read().decode()
+    cells = {}
+    for tag in re.findall(r"<td\b[^>]*\bdata-date=[^>]*>", page):
+        d, i = re.search(r'data-date="([0-9-]{10})"', tag), re.search(r'\bid="([^"]+)"', tag)
+        if d and i:
+            cells[i.group(1)] = d.group(1)
+    counts = {}
+    for cid, text in re.findall(r'<tool-tip\b[^>]*\bfor="([^"]+)"[^>]*>([^<]*)</tool-tip>', page):
+        if cid in cells:
+            m = re.match(r"\s*([0-9,]+) contributions? on", text)
+            counts[cells[cid]] = int(m.group(1).replace(",", "")) if m else 0
+    headline = re.search(r"([0-9,]+)\s+contributions?\s+in the last year", page)
+    total = int(headline.group(1).replace(",", "")) if headline else -1
+    if not counts or len(counts) != len(cells) or sum(counts.values()) != total:
+        raise ValueError(f"the page's calendar did not add up ({len(counts)} of {len(cells)} days, "
+                         f"{sum(counts.values())} against {total})")
+    return sorted((d, (date.fromisoformat(d).weekday() + 1) % 7, c) for d, c in counts.items())  # GitHub's weekday: 0 is Sunday
+
+
+def graphql_calendar(user, token):
     query = ("query($u: String!) { user(login: $u) { contributionsCollection { contributionCalendar {"
              " totalContributions weeks { contributionDays { date weekday contributionCount } } } } } }")
     req = urllib.request.Request(
@@ -39,6 +67,14 @@ def calendar(user, token):
     days = sorted((d["date"], d["weekday"], d["contributionCount"]) for w in cal["weeks"] for d in w["contributionDays"])
     assert sum(c for _, _, c in days) == cal["totalContributions"]
     return days
+
+
+def calendar(user, token):
+    try:
+        return public_calendar(user), "the public calendar"
+    except Exception as e:  # GitHub changed the page: the API's count is close, and better than none
+        print(f"falling back to GraphQL: {e}")
+        return graphql_calendar(user, token), "GraphQL"
 
 
 def stats(days):
@@ -229,7 +265,9 @@ def rewrite(path, s):
 
 
 if __name__ == "__main__":
-    s = stats(calendar(os.environ["USERNAME"], os.environ["GITHUB_TOKEN"]))
+    days, source = calendar(os.environ["USERNAME"], os.environ.get("GITHUB_TOKEN", ""))
+    s = stats(days)
+    print(f"read {len(days)} days from {source}")
     (ROOT / "assets" / "stats.svg").write_text(stats_svg(s))
     print("assets/stats.svg:", {k: s[k] for k in ("total", "current", "longest", "best", "best_date", "active", "span", "first", "last")})
     for path in sys.argv[1:]:
