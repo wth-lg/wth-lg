@@ -47,9 +47,9 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./profile-3d-contrib/profile-night-view.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="./profile-3d-contrib/profile-green.svg" />
-    <img src="./profile-3d-contrib/profile-night-view.svg" alt="3D contribution calendar" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-green.svg" />
+    <img src="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" alt="3D contribution calendar" />
   </picture>
 </p>
 
@@ -58,10 +58,6 @@
     <source media="(prefers-color-scheme: dark)" srcset="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&background=0B0D12&stroke=13213F&ring=2563EB&fire=60A5FA&currStreakNum=E8E8E2&sideNums=E8E8E2&currStreakLabel=60A5FA&sideLabels=8B8B94&dates=8B8B94" />
     <img src="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&ring=2563EB&fire=2563EB&currStreakLabel=2563EB" alt="contribution streak" />
   </picture>
-</p>
-
-<p align="center">
-  <img src="https://github-readme-activity-graph.vercel.app/graph?username=wth-lg&bg_color=0b0d12&color=8b8b94&line=2563eb&point=e8e8e2&area=true&area_color=2563eb&hide_border=true&custom_title=the%20last%2031%20days" width="100%" alt="contributions over the last 31 days" />
 </p>
 
 <p align="center">
