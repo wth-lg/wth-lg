@@ -42,8 +42,9 @@ _raw = {"jb": urllib.request.urlopen(JBM_URL).read(), "sg": urllib.request.urlop
 KIT = {}
 for key, fam, wght in [("sg400", "sg", 400), ("sg500", "sg", 500), ("sg700", "sg", 700),
                        ("jb400", "jb", 400), ("jb500", "jb", 500), ("jb700", "jb", 700)]:
-    tt = instancer.instantiateVariableFont(TTFont(io.BytesIO(_raw[fam])), {"wght": wght})
+    tt = instancer.instantiateVariableFont(TTFont(io.BytesIO(_raw[fam]), recalcTimestamp=False), {"wght": wght})
     tt.flavor = None
+    tt.recalcTimestamp = False  # no build time in the fonts: the same inputs give the same bytes
     buf = io.BytesIO()
     tt.save(buf)
     KIT[key] = dict(tt=tt, gs=tt.getGlyphSet(), upm=tt["head"].unitsPerEm, order=tt.getGlyphOrder(),
@@ -343,7 +344,7 @@ def stack():
         defs.append(f'<g id="row{r}" class="{"fg" if r == 0 else "mu"}">{"".join(seq)}</g>')
         copies = math.ceil(W / period) + 1
         uses = "".join(f'<use href="#row{r}" x="{num(k * period)}"/>' for k in range(copies))
-        dur = period / 30  # about 30 px a second
+        dur = period / 50  # about 50 px a second (the owner, 2026-10-02: "can scroll a bit faster")
         if r == 0:
             css.append(f"@keyframes drift0{{to{{transform:translateX(-{num(period)}px)}}}}")
         else:
@@ -537,7 +538,7 @@ def kit():
         mono[ch] = pen.getCommands()
 
     def subset(key, text):
-        f = TTFont(io.BytesIO(KIT[key]["raw"]))
+        f = TTFont(io.BytesIO(KIT[key]["raw"]), recalcTimestamp=False)
         opts = Options()
         opts.flavor = "woff2"
         opts.layout_features = ["kern", "tnum"]
