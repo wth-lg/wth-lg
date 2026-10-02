@@ -55,8 +55,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&background=0B0D12&stroke=13213F&ring=2563EB&fire=60A5FA&currStreakNum=E8E8E2&sideNums=E8E8E2&currStreakLabel=60A5FA&sideLabels=8B8B94&dates=8B8B94" />
-    <img src="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&ring=2563EB&fire=2563EB&currStreakLabel=2563EB" alt="contribution streak" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&disable_animations=true&background=0B0D12&stroke=13213F&ring=2563EB&fire=60A5FA&currStreakNum=E8E8E2&sideNums=E8E8E2&currStreakLabel=60A5FA&sideLabels=8B8B94&dates=8B8B94" />
+    <img src="https://streak-stats.demolab.com?user=wth-lg&hide_border=true&disable_animations=true&ring=2563EB&fire=2563EB&currStreakLabel=2563EB" alt="contribution streak" />
   </picture>
 </p>
 
