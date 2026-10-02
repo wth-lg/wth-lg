@@ -11,10 +11,10 @@
 </p>
 
 <img src="./assets/h-about.svg" width="100%" alt="01 About: $ python3 -i wentao.py" />
-<a href="https://wentao.gg"><img src="./assets/about.svg" width="100%" alt="&gt;&gt;&gt; wentao.multimodal → ['text', 'docs', 'tables', 'images', 'audio', 'video']; &gt;&gt;&gt; wentao.everything_else → 'https://wentao.gg' (experience, projects, lifting tools)" /></a>
+<a href="https://wentao.gg"><img src="./assets/about.svg" width="100%" alt="&gt;&gt;&gt; wentao.multimodal → ['text', 'code', 'docs', 'tables', 'images', 'audio', 'video']; &gt;&gt;&gt; wentao.everything_else → 'https://wentao.gg' (experience, projects, lifting tools)" /></a>
 
 <img src="./assets/h-stack.svg" width="100%" alt="02 Stack: $ ls ~/stack" />
-<img src="./assets/stack.svg" width="100%" alt="Stack, from his merged pull requests: Go, Python, Rust, TypeScript, Temporal, Parquet, Arrow, Polars, Pydantic, NumPy, Pytest, Claude, Gemini; running on AWS, Google Cloud, Kubernetes, Docker, NVIDIA, Terraform, Helm, Argo CD, GitHub Actions, Datadog, OpenTelemetry, Vault, Redis, DuckDB" />
+<img src="./assets/stack.svg" width="100%" alt="Stack. Languages and apps: Python, Go, Rust, TypeScript, Swift, Java, Bash, PHP, Next.js, React, three.js, Tailwind CSS. Machine learning, LLMs and agents: PyTorch, TensorFlow, Hugging Face, scikit-learn, ONNX, Claude, Gemini, MCP, LangGraph, agent harnesses, Modal, NumPy, Polars, Pydantic. Data and infrastructure: Temporal, Spark, Airflow, BigQuery, Parquet, Arrow, DuckDB, PostgreSQL, Redis, AWS, Google Cloud, Kubernetes, Docker, Terraform, Helm, Argo CD, GitHub Actions, Datadog, OpenTelemetry, Vercel, Supabase" />
 
 <img src="./assets/h-activity.svg" width="100%" alt="03 Activity: $ git log --since=1y" />
 <img src="./assets/stats.svg" width="100%" alt="The current streak, the best day, the active days and the contributions per active day of the last year, redrawn daily." />

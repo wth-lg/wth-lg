@@ -254,7 +254,7 @@ def header(index, title, command, seed):
 
 
 REPL = [  # (prompt, code, result, comment): the About, short, pointing at wentao.gg for the long version
-    (">>> ", "wentao.multimodal", "['text', 'docs', 'tables', 'images', 'audio', 'video']", ""),
+    (">>> ", "wentao.multimodal", "['text', 'code', 'docs', 'tables', 'images', 'audio', 'video']", ""),
     (">>> ", "wentao.everything_else", "'https://wentao.gg'", "  # experience, projects, lifting tools"),
 ]
 
@@ -300,20 +300,36 @@ def about():
 # Simple Icons (CC0) and, where a brand left it (AWS), Devicon (MIT); pinned, fetched at build time, drawn in the theme's ink
 SIMPLE_ICONS = "https://cdn.jsdelivr.net/npm/simple-icons@16.33.0/icons/{}.svg"
 DEVICON = "https://cdn.jsdelivr.net/gh/devicons/devicon@2.17.0/icons/{}.svg"
-STACK = [  # (name, icon): a Simple Icons slug, or "devicon:<path>". From his 1,428 merged PRs in Mercor-io (2026-04 to 10),
-    # weighted by the PRs whose files use each; the languages lead (Go 645 PRs, Python 444, Rust 268; TypeScript is wentao.gg's)
-    [("Go", "go"), ("Python", "python"), ("Rust", "rust"), ("TypeScript", "typescript"), ("Temporal", "temporal"),
-     ("Parquet", "apacheparquet"), ("Arrow", "apachearrow"), ("Polars", "polars"), ("Pydantic", "pydantic"),
-     ("NumPy", "numpy"), ("Pytest", "pytest"), ("Claude", "claude"), ("Gemini", "googlegemini")],
-    [("AWS", "devicon:amazonwebservices/amazonwebservices-plain-wordmark"), ("Google Cloud", "googlecloud"),
-     ("Kubernetes", "kubernetes"), ("Docker", "docker"), ("NVIDIA", "nvidia"), ("Terraform", "terraform"), ("Helm", "helm"),
-     ("Argo CD", "argo"), ("GitHub Actions", "githubactions"), ("Datadog", "datadog"), ("OpenTelemetry", "opentelemetry"),
-     ("Vault", "vault"), ("Redis", "redis"), ("DuckDB", "duckdb")],
+STACK = [  # (name, icon): a Simple Icons slug, "devicon:<path>", or "custom:agent". Rows alternate direction.
+    # Evidence: his 1,428 merged PRs in Mercor-io (Go 645 PRs, Python 444, Rust 268), the manifests of his repos (PyTorch,
+    # Hugging Face, scikit-learn, ONNX, the Anthropic and Gemini SDKs, the Claude Agent SDK, MCP, LangGraph, Harbor, Modal),
+    # pwrlft (Swift, SwiftUI), wentao.gg (Next.js, React, three.js, Tailwind, Vercel, Supabase) and the roles on wentao.gg
+    # (Java, PHP, SQL, Spark, Airflow, BigQuery, TensorFlow, PyTorch).
+    [("Python", "python"), ("Go", "go"), ("Rust", "rust"), ("TypeScript", "typescript"), ("Swift", "swift"),
+     ("Java", "devicon:java/java-plain"), ("Bash", "gnubash"), ("PHP", "php"), ("Next.js", "nextdotjs"), ("React", "react"),
+     ("three.js", "threedotjs"), ("Tailwind CSS", "tailwindcss")],
+    [("PyTorch", "pytorch"), ("TensorFlow", "tensorflow"), ("Hugging Face", "huggingface"), ("scikit-learn", "scikitlearn"),
+     ("ONNX", "onnx"), ("Claude", "claude"), ("Gemini", "googlegemini"), ("MCP", "modelcontextprotocol"),
+     ("LangGraph", "langgraph"), ("Agent harnesses", "custom:agent"), ("Modal", "modal"), ("NumPy", "numpy"),
+     ("Polars", "polars"), ("Pydantic", "pydantic")],
+    [("Temporal", "temporal"), ("Spark", "apachespark"), ("Airflow", "apacheairflow"), ("BigQuery", "googlebigquery"),
+     ("Parquet", "apacheparquet"), ("Arrow", "apachearrow"), ("DuckDB", "duckdb"), ("PostgreSQL", "postgresql"),
+     ("Redis", "redis"), ("AWS", "devicon:amazonwebservices/amazonwebservices-plain-wordmark"), ("Google Cloud", "googlecloud"),
+     ("Kubernetes", "kubernetes"), ("Docker", "docker"), ("Terraform", "terraform"), ("Helm", "helm"), ("Argo CD", "argo"),
+     ("GitHub Actions", "githubactions"), ("Datadog", "datadog"), ("OpenTelemetry", "opentelemetry"), ("Vercel", "vercel"),
+     ("Supabase", "supabase")],
 ]
+# A terminal for the agent harnesses (no brand owns the idea): a rounded frame, a chevron and a cursor, in a 24 box
+AGENT_ICON = ("M5 3H19A4 4 0 0 1 23 7V17A4 4 0 0 1 19 21H5A4 4 0 0 1 1 17V7A4 4 0 0 1 5 3Z"
+              "M5.5 5A2.5 2.5 0 0 0 3 7.5V16.5A2.5 2.5 0 0 0 5.5 19H18.5A2.5 2.5 0 0 0 21 16.5V7.5A2.5 2.5 0 0 0 18.5 5Z"
+              "M6 8.6L7.4 7.2L12.2 12L7.4 16.8L6 15.4L9.4 12Z"
+              "M12.5 14.8H18.5V16.8H12.5Z")
 
 
 def icon(src):
     """(path data, box size) of a brand icon."""
+    if src == "custom:agent":
+        return AGENT_ICON, 24.0
     url = DEVICON.format(src.split(":", 1)[1]) if src.startswith("devicon:") else SIMPLE_ICONS.format(src)
     svg_ = urllib.request.urlopen(url).read().decode()
     box = float(re.search(r'viewBox="0 0 ([0-9.]+)', svg_).group(1))
@@ -321,41 +337,42 @@ def icon(src):
 
 
 def stack():
-    """Two rows of brand icons and names rolling past in opposite directions, the second row quieter."""
+    """Rows of brand icons and names rolling past, alternating direction and ink: languages, then ML, LLMs and agents, then data and infrastructure."""
     doc = Doc()
-    H, size, ic, gap = 132, 22, 28, 46
+    pitch, size, ic, gap = 60, 22, 28, 46
+    H = 14 + pitch * len(STACK)
     rows, css, defs = [], [], []
     seen = {}
     for r, items in enumerate(STACK):
-        base = 50 + r * 60
+        base = 46 + r * pitch
         x, seq = 0.0, []
         for name, src in items:
             if src not in seen:
                 d, box = icon(src)
                 seen[src] = (f"i{len(seen)}", box)
-                defs.append(f'<path id="{seen[src][0]}" d="{d}"/>')
+                rule = ' fill-rule="evenodd"' if src.startswith("custom:") else ""
+                defs.append(f'<path id="{seen[src][0]}" d="{d}"{rule}/>')
             iid, box = seen[src]
-            s = ic / box
-            seq.append(f'<use href="#{iid}" transform="translate({num(x)} {num(base - ic + 4)}) scale({num(s)})"/>')
+            seq.append(f'<use href="#{iid}" transform="translate({num(x)} {num(base - ic + 4)}) scale({num(ic / box)})"/>')
             g_, _, w = doc.text("sg500", name, x + ic + 11, base, size)
             seq.append(g_)
             x += ic + 11 + w + gap
         period = x
-        defs.append(f'<g id="row{r}" class="{"fg" if r == 0 else "mu"}">{"".join(seq)}</g>')
+        defs.append(f'<g id="row{r}" class="{"mu" if r % 2 else "fg"}">{"".join(seq)}</g>')
         copies = math.ceil(W / period) + 1
         uses = "".join(f'<use href="#row{r}" x="{num(k * period)}"/>' for k in range(copies))
         dur = period / 50  # about 50 px a second (the owner, 2026-10-02: "can scroll a bit faster")
-        if r == 0:
-            css.append(f"@keyframes drift0{{to{{transform:translateX(-{num(period)}px)}}}}")
+        if r % 2 == 0:
+            css.append(f"@keyframes drift{r}{{to{{transform:translateX(-{num(period)}px)}}}}")
         else:
-            css.append(f"@keyframes drift1{{from{{transform:translateX(-{num(period)}px)}}to{{transform:translateX(0)}}}}")
+            css.append(f"@keyframes drift{r}{{from{{transform:translateX(-{num(period)}px)}}to{{transform:translateX(0)}}}}")
         rows.append(f'<g mask="url(#fade)"><g style="animation:drift{r} {num(dur)}s linear infinite">{uses}</g></g>')
     fade = ('<linearGradient id="fd" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/>'
             '<stop offset=".08" stop-color="#fff"/><stop offset=".92" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>'
             f'</linearGradient><mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{H}">'
             f'<rect width="{W}" height="{H}" fill="url(#fd)"/></mask>')
     names = [n for row in STACK for n, _ in row]
-    return svg(W, H, "Stack: " + ", ".join(names), "Two rows of brand icons and names roll past in opposite directions.",
+    return svg(W, H, "Stack: " + ", ".join(names), "Rows of brand icons and names roll past in alternating directions.",
                doc.render(fade + "".join(defs)) + "".join(rows), "".join(css))
 
 
