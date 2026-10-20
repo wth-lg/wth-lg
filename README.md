@@ -18,7 +18,7 @@
 
 <img src="./assets/h-activity.svg" width="100%" alt="03 Activity: $ git log --since=1y" />
 <!-- stats -->
-<img src="./assets/stats.svg" width="100%" alt="10,860 contributions from Oct 19 2025 to Oct 20 2026 (UTC). A typical active day has 32 (the median). Active on 199 of the 212 days since Mar 23 2026. A 9-day streak, the longest 39. Weekly totals peak at 2,116 (Oct 4–10); the latest week has 182 (Oct 18–20). Median active day by weekday: Mon 26, Tue 33, Wed 48, Thu 35, Fri 32, Sat 24, Sun 11." />
+<img src="./assets/stats.svg" width="100%" alt="10,863 contributions from Oct 19 2025 to Oct 20 2026 (UTC). A typical active day has 32 (the median). Active on 199 of the 212 days since Mar 23 2026. A 9-day streak, the longest 39. Weekly totals peak at 2,116 (Oct 4–10); the latest week has 185 (Oct 18–20). Median active day by weekday: Mon 26, Tue 33, Wed 48, Thu 35, Fri 32, Sat 24, Sun 11." />
 <!-- /stats -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/profile-3d-contrib/profile-night-view.svg" />
