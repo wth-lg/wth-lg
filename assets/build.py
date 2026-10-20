@@ -14,7 +14,6 @@ The design system, wentao.gg's identity set the way the Awwwards Sites of the Ye
           frame is what prefers-reduced-motion and renderers that do not animate show. Only cursors, the marquee and the
           banner's loop keep moving.
 """
-import base64
 import io
 import json
 import math
@@ -27,7 +26,6 @@ from xml.sax.saxutils import escape
 import uharfbuzz as hb
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
-from fontTools.subset import Options, Subsetter
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
@@ -544,12 +542,12 @@ def banner(seed=17):
 
 # ---------------------------------------------------------------------------------------------------- the daily kit
 STAT_SIZE = 54
+MONO_SIZE = 13
 MONO_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.–—·/+%:"
 
 
 def kit():
-    """What scripts/daily.py draws the stats with, and the fonts it gives the 3D image's own text."""
-    doc = Doc()
+    """What scripts/daily.py draws the stats with: tabular Space Grotesk digits and JetBrains Mono capitals, as outlines."""
     digits, cell = {}, 0.0
     for ch in "0123456789,":
         (g, _, _), = shape("sg700", ch, STAT_SIZE, features={"tnum": True})[0]
@@ -562,28 +560,14 @@ def kit():
             cell = max(cell, w)
     mono = {}
     for ch in MONO_CHARS:
-        (g, _, _), = shape("jb500", ch, 11.5)[0]
+        (g, _, _), = shape("jb500", ch, MONO_SIZE)[0]
         kk = KIT["jb500"]
         pen = SVGPathPen(kk["gs"], ntos=num1)
-        kk["gs"][g].draw(TransformPen(pen, (11.5 / kk["upm"], 0, 0, -11.5 / kk["upm"], 0, 0)))
+        kk["gs"][g].draw(TransformPen(pen, (MONO_SIZE / kk["upm"], 0, 0, -MONO_SIZE / kk["upm"], 0, 0)))
         mono[ch] = pen.getCommands()
-
-    def subset(key, text):
-        f = TTFont(io.BytesIO(KIT[key]["raw"]), recalcTimestamp=False)
-        opts = Options()
-        opts.flavor = "woff2"
-        opts.layout_features = ["kern", "tnum"]
-        sub = Subsetter(opts)
-        sub.populate(text=text)
-        sub.subset(f)
-        buf = io.BytesIO()
-        f.flavor = "woff2"
-        f.save(buf)
-        return base64.b64encode(buf.getvalue()).decode()
-    ascii_ = "".join(chr(c) for c in range(32, 127)) + "·—–°"
     return {"size": STAT_SIZE, "cell": round(cell, 2), "digits": digits,
-            "mono": {"size": 11.5, "tracking": 0.1, "advance": round(0.6 * 11.5, 3), "glyphs": mono},
-            "css": THEME + MOTION, "fonts": {"mono": subset("jb400", ascii_), "display": subset("sg700", ascii_)}}
+            "mono": {"size": MONO_SIZE, "tracking": 0.1, "advance": round(0.6 * MONO_SIZE, 3), "glyphs": mono},
+            "css": THEME + MOTION}
 
 
 if __name__ == "__main__":
