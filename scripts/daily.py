@@ -197,8 +197,11 @@ def alt_text(s):
             + ", ".join(f"{d.title()} {v:,}" for d, v in zip(DAYS, s["by_day"])) + ".")
 
 
-def stats_svg(s):
-    W, H = 860, 352
+def stats_svg(s, narrow=False):
+    """One row of cells over the weeks and the weekdays side by side; narrow (README.md's phone image, 480 wide, about
+    0.75x) sets the cells two by two and the weekdays under the weeks, so a label is 9 px or more on a 343 px column."""
+    W, H = (480, 714) if narrow else (860, 352)
+    dw, dd = (146, 362) if narrow else (0, 0)  # how far the weeks and the weekdays move down
     size = KIT["size"]
     base, lead = 66, 1.25  # the total's digits are 1.25x the others
     body, chars = [], set()
@@ -211,24 +214,29 @@ def stats_svg(s):
         (s["current"], "DAY STREAK", "LONGEST YET" if s["current"] and s["current"] == s["longest"] else f"LONGEST {s['longest']}"),
     ]
     for k, (value, name, detail) in enumerate(cells):
-        x = 0 if k == 0 else 270 + (k - 1) * 196 + 18
+        if narrow:
+            xd, y = 252, 146 * (k // 2)  # a rule left of the right column
+            x = 270 if k % 2 else 0
+        else:
+            xd, y = 270 + (k - 1) * 196, 0
+            x = 0 if k == 0 else xd + 18
         t0 = 0.1 * (k + 1)
-        body.append(f'<g transform="translate({num(x)} {base}){" scale(%s)" % num(lead) if k == 0 else ""}">{odometer(value, t0)}</g>')
-        g1, c1 = mono(name, x, 98, "fg")
-        g2, c2 = mono(detail, x, 120, "mu")
+        body.append(f'<g transform="translate({num(x)} {base + y}){" scale(%s)" % num(lead) if k == 0 else ""}">{odometer(value, t0)}</g>')
+        g1, c1 = mono(name, x, 98 + y, "fg")
+        g2, c2 = mono(detail, x, 120 + y, "mu")
         body.append(f'<g style="animation:wait {num(t0)}s step-end">{g1}{g2}</g>')
         chars |= c1 | c2
-        if k:
-            xd = 270 + (k - 1) * 196
-            body.append(f'<line class="shl" x1="{xd}" y1="14" x2="{xd}" y2="126" stroke-width="1" pathLength="1" '
+        if k % 2 if narrow else k:
+            body.append(f'<line class="shl" x1="{xd}" y1="{14 + y}" x2="{xd}" y2="{126 + y}" stroke-width="1" pathLength="1" '
                         f'stroke-dasharray="1" style="animation:draw .8s cubic-bezier(.65,0,.35,1) {num(0.1 * k)}s both"/>')
-    body.append(f'<line class="shl" x1="0" y1="150.5" x2="{W}" y2="150.5" stroke-width="1" pathLength="1" stroke-dasharray="1" '
-                'style="animation:draw 1s cubic-bezier(.65,0,.35,1) .1s both"/>')
-    body.append('<line class="shl" x1="540" y1="166" x2="540" y2="340" stroke-width="1" pathLength="1" stroke-dasharray="1" '
+    body.append(f'<line class="shl" x1="0" y1="{150.5 + dw}" x2="{W}" y2="{150.5 + dw}" stroke-width="1" pathLength="1" '
+                'stroke-dasharray="1" style="animation:draw 1s cubic-bezier(.65,0,.35,1) .1s both"/>')
+    split = f'x1="0" y1="{150.5 + dd}" x2="{W}" y2="{150.5 + dd}"' if narrow else 'x1="540" y1="166" x2="540" y2="340"'
+    body.append(f'<line class="shl" {split} stroke-width="1" pathLength="1" stroke-dasharray="1" '
                 'style="animation:draw .8s cubic-bezier(.65,0,.35,1) .4s both"/>')
 
     # the weeks: one bar per calendar column, the peak and the latest week in blue and labelled
-    x0, x1, top, bottom = 0, 520, 268, 340
+    x0, x1, top, bottom = 0, W if narrow else 520, 268 + dw, 340 + dw
     weeks = s["weeks"]
     peak_k = max(range(len(weeks)), key=lambda k: (weeks[k][2], k))
     last_k = len(weeks) - 1
@@ -244,12 +252,13 @@ def stats_svg(s):
             bars.append(f'<rect {paint} x="{num(x0 + k * pitch)}" y="{num(y)}" width="{num(bw)}" height="{num(bottom - y)}"/>')
     body.append(f'<g style="transform-origin:0 {bottom}px;animation:gy .8s cubic-bezier(.2,.8,.2,1) .5s both">{"".join(bars)}</g>')
     body.append(f'<line class="shl" x1="{x0}" y1="{bottom + 0.5}" x2="{x1}" y2="{bottom + 0.5}" stroke-width="1"/>')
-    g1, c1 = mono("WEEKLY TOTALS", 0, 184, "fg")
-    g2, c2 = mono(window(s), 0, 206, "mu")
+    g1, c1 = mono("WEEKLY TOTALS", 0, 184 + dw, "fg")
+    g2, c2 = mono(window(s), 0, 206 + dw, "mu")
     body.append(f'<g style="animation:wait .5s step-end">{g1}{g2}</g>')
     chars |= c1 | c2
     # the latest week's tag sits above the peak's: its leader passes right of the peak's tag, which ends at its own bar
-    marks = [(peak_k, "PEAK, LATEST", 258)] if peak_k == last_k else [(last_k, "LATEST", 236), (peak_k, "PEAK", 258)]
+    marks = ([(peak_k, "PEAK, LATEST", 258 + dw)] if peak_k == last_k
+             else [(last_k, "LATEST", 236 + dw), (peak_k, "PEAK", 258 + dw)])
     tags = []
     for k, word, y in marks:
         a, b, n = weeks[k]
@@ -265,15 +274,16 @@ def stats_svg(s):
     body.append(f'<g style="animation:wait 1.3s step-end">{"".join(tags)}</g>')
 
     # the weekdays: the median active day, Monday to Sunday, one blue
-    lx, bx = 558, 592
+    lx = 0 if narrow else 558
+    bx = lx + 34
     reach = W - bx - 8 - mono_width("0,000")  # room for the value after the longest bar
-    g1, c1 = mono("BY WEEKDAY", lx, 184, "fg")
-    g2, c2 = mono("MEDIAN ACTIVE DAY", lx, 206, "mu")
+    g1, c1 = mono("BY WEEKDAY", lx, 184 + dd, "fg")
+    g2, c2 = mono("MEDIAN ACTIVE DAY", lx, 206 + dd, "mu")
     body.append(f'<g style="animation:wait .5s step-end">{g1}{g2}</g>')
     chars |= c1 | c2
     most = max(max(s["by_day"]), 1)
     for k, (day, v) in enumerate(zip(DAYS, s["by_day"])):
-        y = 232 + 18 * k
+        y = 232 + dd + 18 * k
         t = 0.5 + 0.1 * k
         g, c = mono(day, lx, y, "mu")
         w = max(1, reach * v / most) if v else 0
@@ -294,10 +304,15 @@ def stats_svg(s):
             f'<style>{KIT["css"]}{motion}</style>\n<defs>{"".join(defs)}</defs>{"".join(body)}\n</svg>\n')
 
 
+NARROW = "https://raw.githubusercontent.com/wth-lg/wth-lg/main/assets/stats-narrow.svg"  # absolute, like the 3D sources
+
+
 def readme(path, s):
-    """The stats image's alt text, rewritten between its markers; the rest of README.md is left as it is."""
+    """The stats image's alt text, rewritten between its markers with the phone's source; the rest of README.md is left as
+    it is."""
     text = path.read_text()
-    tag = f'<img src="./assets/stats.svg" width="100%" alt="{escape(alt_text(s), {chr(34): "&quot;"})}" />'
+    tag = (f'<picture>\n  <source media="(max-width: 600px)" srcset="{NARROW}" />\n'
+           f'  <img src="./assets/stats.svg" width="100%" alt="{escape(alt_text(s), {chr(34): "&quot;"})}" />\n</picture>')
     out, n = re.subn(r"(<!-- stats -->\n).*?(\n<!-- /stats -->)", lambda m: m.group(1) + tag + m.group(2), text, flags=re.S)
     if n != 1:
         raise ValueError(f"{path}: {n} <!-- stats --> ... <!-- /stats --> blocks, not 1")
@@ -403,6 +418,7 @@ if __name__ == "__main__":
     s = stats(days)
     print(f"read {len(days)} days from {source}")
     (ROOT / "assets" / "stats.svg").write_text(stats_svg(s))
+    (ROOT / "assets" / "stats-narrow.svg").write_text(stats_svg(s, narrow=True))
     readme(ROOT / "README.md", s)
     print("assets/stats.svg:", {k: s[k] for k in ("total", "typical", "active", "since", "start", "current", "longest", "first", "last")})
     print("by weekday, median active day:", dict(zip(DAYS, s["by_day"])))
