@@ -7,7 +7,6 @@
 @keyframes drift0{to{transform:translateX(-1836.51px)}}@keyframes drift1{from{transform:translateX(-3005.97px)}to{transform:translateX(0)}}@keyframes drift2{to{transform:translateX(-3846.39px)}}
 @keyframes wait{0%,100%{opacity:0}}
 @keyframes flash{0%,100%{opacity:1}}
-@keyframes draw{from{stroke-dashoffset:1}}
 @keyframes drawx{from{transform:scaleX(0)}}
 @keyframes blink{0%,49.9%{opacity:1}50%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important}}

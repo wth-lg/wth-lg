@@ -12,7 +12,8 @@ private work; GraphQL is the fallback), and then:
   - each 3D image (github-profile-3d-contrib): only its calendar stays, cropped to the bars. Its radar and language donut
     see only public work (GitHub reports private organisation work as daily totals, never by type), its headline and
     counters sit outside the crop, and the total leads stats.svg instead. Its SMIL growth goes (it ignored reduced
-    motion) for one CSS entrance, and its colours become wentao.gg's.
+    motion) for one CSS entrance, and its colours become wentao.gg's; so does the rainbow's endless hue loop, the only
+    colour its faces had.
 """
 import json
 import math
@@ -150,10 +151,11 @@ ROLL = 5  # cells every digit travels: equal travel, so equal speed
 def odometer(value, t0):
     """Each digit rolls down five cells into place, like wentao.gg's split-flap; drawn at the origin, baseline 0.
 
-    The column's resting place is its own position, so the final frame (and reduced motion) is the number."""
+    The column's resting place is its own position, so the final frame (and reduced motion) is the number. The digits
+    land a beat apart, left to right; the comma is no beat, it stands still between its neighbours."""
     step, cell = KIT["size"] * 1.25, KIT["cell"]
-    parts, cx = [], 0.0
-    for i, ch in enumerate(f"{value:,}"):
+    parts, cx, i = [], 0.0, 0
+    for ch in f"{value:,}":
         if ch == ",":
             parts.append(f'<use href="#dcomma" x="{num(cx)}" class="fg"/>')
             cx += KIT["digits"][","]["w"]
@@ -163,7 +165,17 @@ def odometer(value, t0):
         parts.append(f'<g clip-path="url(#cl)"><g class="fg" style="animation:roll 1.2s cubic-bezier(.2,.8,.2,1) '
                      f'{num(t0 + 0.1 * i)}s both">{col}</g></g>')
         cx += cell
+        i += 1
     return "".join(parts)
+
+
+def rule(x1, y1, x2, y2, t, dur=0.8):
+    """A hairline that scales in from its first end, like build.py's: a transform, so a renderer that does not animate
+    draws it whole (a dash offset drew it dotted)."""
+    across = y1 == y2
+    return (f'<line class="shl" x1="{num(x1)}" y1="{num(y1)}" x2="{num(x2)}" y2="{num(y2)}" stroke-width="1" '
+            f'style="transform-origin:{num(x1)}px {num(y1)}px;animation:{"gx" if across else "gy"} {num(dur)}s '
+            f'cubic-bezier(.65,0,.35,1) {num(t)}s both"/>')
 
 
 def short_day(iso):
@@ -227,13 +239,9 @@ def stats_svg(s, narrow=False):
         body.append(f'<g style="animation:wait {num(t0)}s step-end">{g1}{g2}</g>')
         chars |= c1 | c2
         if k % 2 if narrow else k:
-            body.append(f'<line class="shl" x1="{xd}" y1="{14 + y}" x2="{xd}" y2="{126 + y}" stroke-width="1" pathLength="1" '
-                        f'stroke-dasharray="1" style="animation:draw .8s cubic-bezier(.65,0,.35,1) {num(0.1 * k)}s both"/>')
-    body.append(f'<line class="shl" x1="0" y1="{150.5 + dw}" x2="{W}" y2="{150.5 + dw}" stroke-width="1" pathLength="1" '
-                'stroke-dasharray="1" style="animation:draw 1s cubic-bezier(.65,0,.35,1) .1s both"/>')
-    split = f'x1="0" y1="{150.5 + dd}" x2="{W}" y2="{150.5 + dd}"' if narrow else 'x1="540" y1="166" x2="540" y2="340"'
-    body.append(f'<line class="shl" {split} stroke-width="1" pathLength="1" stroke-dasharray="1" '
-                'style="animation:draw .8s cubic-bezier(.65,0,.35,1) .4s both"/>')
+            body.append(rule(xd, 14 + y, xd, 126 + y, 0.1 * k))
+    body.append(rule(0, 150.5 + dw, W, 150.5 + dw, 0.1, 1))
+    body.append(rule(0, 150.5 + dd, W, 150.5 + dd, 0.4) if narrow else rule(540, 166, 540, 340, 0.4))
 
     # the weeks: one bar per calendar column, the peak and the latest week in blue and labelled
     x0, x1, top, bottom = 0, W if narrow else 520, 268 + dw, 340 + dw
@@ -248,7 +256,7 @@ def stats_svg(s, narrow=False):
     for k, (_, _, n) in enumerate(weeks):
         if n:
             y = bar_top(k)
-            paint = 'class="bl"' if k in (peak_k, last_k) else 'class="mu" fill-opacity=".45"'
+            paint = 'class="bl"' if k in (peak_k, last_k) else 'class="mu" fill-opacity=".8"'  # 3.5:1 on white, 4:1 on #0d1117
             bars.append(f'<rect {paint} x="{num(x0 + k * pitch)}" y="{num(y)}" width="{num(bw)}" height="{num(bottom - y)}"/>')
     body.append(f'<g style="transform-origin:0 {bottom}px;animation:gy .8s cubic-bezier(.2,.8,.2,1) .5s both">{"".join(bars)}</g>')
     body.append(f'<line class="shl" x1="{x0}" y1="{bottom + 0.5}" x2="{x1}" y2="{bottom + 0.5}" stroke-width="1"/>')
@@ -391,8 +399,13 @@ def rewrite(path, s):
     if (len(cal), len(radar), len(heads)) != (1, 1, 1):
         raise ValueError(f"{path}: {len(cal)} calendars, {len(radar)} radars, {len(heads)} headlines, not one each "
                          "(not the tool's own output, or the tool's layout changed)")
-    smil = 0
+    smil = rainbow = 0
     for e in root.iter():
+        m = re.fullmatch(r"rb-l(\d)-(top|left|right)", e.get("class") or "")
+        if m:  # the rainbow's faces are coloured only by an endless hue loop: with motion off they fell back to black
+            e.set("class", f"cont-{m.group(2)}-{m.group(1)}")
+            e.attrib.pop("style", None)  # the loop's phase
+            rainbow += 1
         for k in list(e):
             if k.tag in (f"{{{NS}}}animate", f"{{{NS}}}animateTransform"):
                 e.remove(k)
@@ -410,7 +423,7 @@ def rewrite(path, s):
     theme = "dark" if "night" in Path(path).name else "light"
     el("style", {}, theme_css(theme), parent=root)
     tree.write(path, encoding="unicode")
-    print(f"{path}: {theme}, {smil} SMIL animations removed, cropped to {vx} {vy} {vw} {vh}")
+    print(f"{path}: {theme}, {smil} SMIL animations removed, {rainbow} rainbow faces recoloured, cropped to {vx} {vy} {vw} {vh}")
 
 
 if __name__ == "__main__":
