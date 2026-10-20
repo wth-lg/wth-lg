@@ -26,4 +26,4 @@
 
 <img src="./assets/footer.svg" width="100%" alt="wentao@sf ~ $ exit. © 2026 Wentao He, San Francisco." />
 
-<p align="center"><img src="https://komarev.com/ghpvc/?username=wth-lg&label=peeks&color=2563eb&style=flat-square" alt="profile peeks" /></p>
+<p align="center"><img src="https://wentao.gg/api/peeks" alt="profile peeks" /></p>
