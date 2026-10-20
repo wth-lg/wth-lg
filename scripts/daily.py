@@ -1,19 +1,21 @@
-"""The profile's daily data: draws assets/stats.svg, writes its alt text into README.md and restyles the 3D images.
+"""The profile's daily data: draws assets/stats.svg and stats-narrow.svg, writes their alt text into README.md and restyles
+the 3D images.
 
-    GITHUB_TOKEN=... USERNAME=wth-lg python3 scripts/daily.py profile-3d-contrib/*.svg
+    GITHUB_TOKEN=... USERNAME=wth-lg python3 scripts/daily.py profile-3d-contrib/profile-green.svg profile-3d-contrib/profile-night-view.svg
 
 It reads the contribution calendar every visitor sees under the README (signed out, so UTC days; its daily totals count
 private work; GraphQL is the fallback), and then:
-  - assets/stats.svg: the year's contributions, the typical (median) active day, the active days since the first one and
-    the streak, in Space Grotesk numerals that roll into place; the weekly totals as bars, the peak and the latest week
-    labelled; the median active day by weekday. Medians, because one 1,721-contribution day would otherwise decide the
-    mean and the busiest weekday. Drawn from assets/kit.json (assets/build.py makes it), so no font tools here;
-  - README.md: the stats image's alt text, between its <!-- stats --> markers, so a screen reader hears today's values;
-  - each 3D image (github-profile-3d-contrib): only its calendar stays, cropped to the bars. Its radar and language donut
-    see only public work (GitHub reports private organisation work as daily totals, never by type), its headline and
-    counters sit outside the crop, and the total leads stats.svg instead. Its SMIL growth goes (it ignored reduced
-    motion) for one CSS entrance, and its colours become wentao.gg's; so does the rainbow's endless hue loop, the only
-    colour its faces had.
+  - assets/stats.svg (and its phone layout, stats-narrow.svg): the year's contributions, the typical (median) active
+    day, the active days since the first one and the streak, in Space Grotesk numerals that roll into place; the weekly
+    totals as bars, the peak and the latest week labelled; the median active day by weekday. Medians, because one
+    1,721-contribution day would otherwise decide the mean and the busiest weekday. Drawn from assets/kit.json
+    (assets/build.py makes it), so no font tools here;
+  - README.md: the stats image's alt text and phone source, between its <!-- stats --> markers, so a screen reader hears
+    today's values;
+  - the two 3D images README.md shows (github-profile-3d-contrib's green and night-view): only the calendar stays,
+    cropped to the bars. Its radar and language donut see only public work (GitHub reports private organisation work as
+    daily totals, never by type), its headline and counters sit outside the crop, and the total leads stats.svg instead.
+    Its SMIL growth goes (it ignored reduced motion) for one CSS entrance, and its colours become wentao.gg's.
 """
 import json
 import math
@@ -78,7 +80,7 @@ def calendar(user, token):
     try:
         return public_calendar(user), "the public calendar"
     except Exception as e:  # GitHub changed the page: the API's count is close, and better than none
-        print(f"falling back to GraphQL: {e}")
+        print(f"::warning title=daily.py stats source::fell back to GraphQL, totals run about 2.5% low: {e}")
         return graphql_calendar(user, token), "GraphQL"
 
 
@@ -195,42 +197,56 @@ def window(s):
     return f"{day(s['first'])} – {day(s['last'])} · UTC"
 
 
+def dated(s):
+    """Whether the active days can count from a yearless date: not once their start is a year back, where MAR 23 or
+    OCT 19 would read as days ago (a week of margin)."""
+    return (date.fromisoformat(s["last"]) - date.fromisoformat(s["start"])).days < 358
+
+
 def alt_text(s):
     weeks = s["weeks"]
     peak, latest = max(weeks, key=lambda w: (w[2], w[0])), weeks[-1]
     title = lambda iso: f"{date.fromisoformat(iso):%b %-d %Y}"
-    streak = (f"A {s['current']}-day streak, the longest {s['longest']}." if s["current"]
-              else f"No current streak; the longest {s['longest']} days.")
+    streak = (f"A {s['current']}-day streak; the longest in the last 12 months is {s['longest']}." if s["current"]
+              else f"No current streak; the longest in the last 12 months is {s['longest']} days.")
+    since = (f"Active on {s['active']} of the {s['since']} days since {title(s['start'])}." if dated(s)
+             else f"Active on {s['active']} of the last {s['since']} days.")
     return (f"{s['total']:,} contributions from {title(s['first'])} to {title(s['last'])} (UTC). "
             f"A typical active day has {s['typical']:,} (the median). "
-            f"Active on {s['active']} of the {s['since']} days since {title(s['start'])}. {streak} "
+            f"{since} {streak} "
             f"Weekly totals peak at {peak[2]:,} ({span(peak[0], peak[1]).title()}); "
             f"the latest week has {latest[2]:,} ({span(latest[0], latest[1]).title()}). Median active day by weekday: "
             + ", ".join(f"{d.title()} {v:,}" for d, v in zip(DAYS, s["by_day"])) + ".")
 
 
-def stats_svg(s, narrow=False):
-    """One row of cells over the weeks and the weekdays side by side; narrow (README.md's phone image, 480 wide, about
-    0.75x) sets the cells two by two and the weekdays under the weeks, so a label is 9 px or more on a 343 px column."""
-    W, H = (480, 714) if narrow else (860, 352)
+def stats_svg(s, source="the public calendar", narrow=False):
+    """One row of cells over the weeks and the weekdays side by side; narrow (README.md's phone image, 400 wide) sets the
+    cells two by two and the weekdays under the weeks, so a label is 9 px or more in a phone's column (viewport - 82,
+    about 293-308 px on common phones)."""
+    W, H = (400, 714) if narrow else (860, 352)
     dw, dd = (146, 362) if narrow else (0, 0)  # how far the weeks and the weekdays move down
     size = KIT["size"]
-    base, lead = 66, 1.25  # the total's digits are 1.25x the others
+    base = 66
     body, chars = [], set()
 
     # the row: the total leads, at 1.25x; the rest are its context
     cells = [
         (s["total"], "CONTRIBUTIONS", "LAST 12 MONTHS"),
         (s["typical"], "TYPICAL DAY", "MEDIAN ACTIVE DAY"),
-        (s["active"], "ACTIVE DAYS", f"OF {s['since']} SINCE {short_day(s['start'])}"),
-        (s["current"], "DAY STREAK", "LONGEST YET" if s["current"] and s["current"] == s["longest"] else f"LONGEST {s['longest']}"),
+        (s["active"], "ACTIVE DAYS", f"OF {s['since']} SINCE {short_day(s['start'])}" if dated(s)
+         else f"OF LAST {s['since']} DAYS"),
+        (s["current"], "DAY STREAK", "BEST IN 12 MO" if s["current"] and s["current"] == s["longest"]
+         else f"12-MO BEST {s['longest']}"),  # the window's best, which falls as old days leave it
     ]
+    rule1 = 210 if narrow else 270  # the first rule, right of the total
+    # the total's digits are 1.25x the others, less if a longer total would reach the rule
+    lead = min(1.25, (rule1 - 12) / sum(KIT["digits"][","]["w"] if ch == "," else KIT["cell"] for ch in f"{s['total']:,}"))
     for k, (value, name, detail) in enumerate(cells):
         if narrow:
-            xd, y = 252, 146 * (k // 2)  # a rule left of the right column
-            x = 270 if k % 2 else 0
+            xd, y = rule1, 146 * (k // 2)  # a rule left of the right column
+            x = 225 if k % 2 else 0
         else:
-            xd, y = 270 + (k - 1) * 196, 0
+            xd, y = rule1 + (k - 1) * 196, 0
             x = 0 if k == 0 else xd + 18
         t0 = 0.1 * (k + 1)
         body.append(f'<g transform="translate({num(x)} {base + y}){" scale(%s)" % num(lead) if k == 0 else ""}">{odometer(value, t0)}</g>')
@@ -256,7 +272,8 @@ def stats_svg(s, narrow=False):
     for k, (_, _, n) in enumerate(weeks):
         if n:
             y = bar_top(k)
-            paint = 'class="bl"' if k in (peak_k, last_k) else 'class="mu" fill-opacity=".8"'  # 3.5:1 on white, 4:1 on #0d1117
+            # grey: 3.5:1 on white, 4:1 on #0d1117; .ac is #60a5fa on dark, so the marked bars are the brightest there too
+            paint = 'class="ac"' if k in (peak_k, last_k) else 'class="mu" fill-opacity=".8"'
             bars.append(f'<rect {paint} x="{num(x0 + k * pitch)}" y="{num(y)}" width="{num(bw)}" height="{num(bottom - y)}"/>')
     body.append(f'<g style="transform-origin:0 {bottom}px;animation:gy .8s cubic-bezier(.2,.8,.2,1) .5s both">{"".join(bars)}</g>')
     body.append(f'<line class="shl" x1="{x0}" y1="{bottom + 0.5}" x2="{x1}" y2="{bottom + 0.5}" stroke-width="1"/>')
@@ -297,7 +314,7 @@ def stats_svg(s, narrow=False):
         w = max(1, reach * v / most) if v else 0
         gv, cv = mono(f"{v:,}", bx + w + 8, y, "fg")
         chars |= c | cv
-        body.append(f'{g}<rect class="bl" x="{bx}" y="{y - 9}" width="{num(w)}" height="9" '
+        body.append(f'{g}<rect class="ac" x="{bx}" y="{y - 9}" width="{num(w)}" height="9" '
                     f'style="transform-origin:{bx}px 0;animation:drawx .8s cubic-bezier(.2,.8,.2,1) {num(t)}s both"/>'
                     f'<g style="animation:wait {num(t + 0.8)}s step-end">{gv}</g>')
 
@@ -308,18 +325,22 @@ def stats_svg(s, narrow=False):
     motion = (f"@keyframes roll{{from{{transform:translateY({num(-ROLL * size * 1.25)}px)}}}}"
               "@keyframes gy{from{transform:scaleY(0)}}")  # drawx comes with the kit
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
-            f'aria-labelledby="t"><title id="t">{escape(alt_text(s))}</title><!-- Drawn daily by scripts/daily.py. -->\n'
+            f'aria-labelledby="t"><title id="t">{escape(alt_text(s))}</title><!-- Drawn daily by scripts/daily.py from {source}. -->\n'
             f'<style>{KIT["css"]}{motion}</style>\n<defs>{"".join(defs)}</defs>{"".join(body)}\n</svg>\n')
 
 
 NARROW = "https://raw.githubusercontent.com/wth-lg/wth-lg/main/assets/stats-narrow.svg"  # absolute, like the 3D sources
+# where GitHub's README column is under about 595 px, so the 860-wide images would set 13 px labels under 9 px: the
+# column is the viewport less 82 px below Primer's 768 px breakpoint, less 370 to 1011, less 434 to 1279 (README.md's
+# other narrow sources use the same string)
+NARROW_MEDIA = "(max-width: 676px), (min-width: 768px) and (max-width: 964px), (min-width: 1012px) and (max-width: 1028px)"
 
 
 def readme(path, s):
     """The stats image's alt text, rewritten between its markers with the phone's source; the rest of README.md is left as
     it is."""
     text = path.read_text()
-    tag = (f'<picture>\n  <source media="(max-width: 600px)" srcset="{NARROW}" />\n'
+    tag = (f'<picture>\n  <source media="{NARROW_MEDIA}" srcset="{NARROW}" />\n'
            f'  <img src="./assets/stats.svg" width="100%" alt="{escape(alt_text(s), {chr(34): "&quot;"})}" />\n</picture>')
     out, n = re.subn(r"(<!-- stats -->\n).*?(\n<!-- /stats -->)", lambda m: m.group(1) + tag + m.group(2), text, flags=re.S)
     if n != 1:
@@ -399,13 +420,8 @@ def rewrite(path, s):
     if (len(cal), len(radar), len(heads)) != (1, 1, 1):
         raise ValueError(f"{path}: {len(cal)} calendars, {len(radar)} radars, {len(heads)} headlines, not one each "
                          "(not the tool's own output, or the tool's layout changed)")
-    smil = rainbow = 0
+    smil = 0
     for e in root.iter():
-        m = re.fullmatch(r"rb-l(\d)-(top|left|right)", e.get("class") or "")
-        if m:  # the rainbow's faces are coloured only by an endless hue loop: with motion off they fell back to black
-            e.set("class", f"cont-{m.group(2)}-{m.group(1)}")
-            e.attrib.pop("style", None)  # the loop's phase
-            rainbow += 1
         for k in list(e):
             if k.tag in (f"{{{NS}}}animate", f"{{{NS}}}animateTransform"):
                 e.remove(k)
@@ -423,15 +439,15 @@ def rewrite(path, s):
     theme = "dark" if "night" in Path(path).name else "light"
     el("style", {}, theme_css(theme), parent=root)
     tree.write(path, encoding="unicode")
-    print(f"{path}: {theme}, {smil} SMIL animations removed, {rainbow} rainbow faces recoloured, cropped to {vx} {vy} {vw} {vh}")
+    print(f"{path}: {theme}, {smil} SMIL animations removed, cropped to {vx} {vy} {vw} {vh}")
 
 
 if __name__ == "__main__":
     days, source = calendar(os.environ["USERNAME"], os.environ.get("GITHUB_TOKEN", ""))
     s = stats(days)
     print(f"read {len(days)} days from {source}")
-    (ROOT / "assets" / "stats.svg").write_text(stats_svg(s))
-    (ROOT / "assets" / "stats-narrow.svg").write_text(stats_svg(s, narrow=True))
+    (ROOT / "assets" / "stats.svg").write_text(stats_svg(s, source))
+    (ROOT / "assets" / "stats-narrow.svg").write_text(stats_svg(s, source, narrow=True))
     readme(ROOT / "README.md", s)
     print("assets/stats.svg:", {k: s[k] for k in ("total", "typical", "active", "since", "start", "current", "longest", "first", "last")})
     print("by weekday, median active day:", dict(zip(DAYS, s["by_day"])))

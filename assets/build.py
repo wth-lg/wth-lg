@@ -5,18 +5,20 @@
 The design system, wentao.gg's identity set the way the Awwwards Sites of the Year set theirs:
   type    Space Grotesk for words and numbers, JetBrains Mono for labels, indexes and commands: wentao.gg's own pair.
           HarfBuzz shapes every line (kerning, tabular figures) and fontTools draws it as outlines, because an SVG shown
-          as an <img> cannot load web fonts.
+          as an <img> cannot load web fonts; except the banner's code rain, decoration set as <text> in the system
+          monospace.
   colour  ink #0b0d12, paper #e8e8e2, muted #8b8b94 (#626c7a on light) and one blue, #2563eb (#60a5fa as text on dark).
           Grounds are transparent and each image follows prefers-color-scheme by itself; the banner is a terminal, dark in both.
   motion  one beat is 100 ms, wentao.gg's ESCAPEMENT. decode: a word resolves out of code glyphs; type: a command types
           on half beats and a block cursor blinks once a second; draw: a hairline scales in from its left end; drift: the
           stack marquee. All of it is CSS animation over a final frame: an intro plays once and rests there, and the final
           frame is what prefers-reduced-motion and renderers that do not animate show. Every intro ends by 2 s, its delays
-          on the beat; entrances ease (.2,.8,.2,1), draws (.65,0,.35,1), and only loops run linear. Only the banner's cursor
-          and role line and the marquee keep moving; the other cursors blink four times and rest lit, the link arrows nudge
-          twice.
-  width   860 for the desktop column; under 600 px README.md shows each image's -narrow twin, 480 wide, drawn about 0.75x,
-          so no label falls under 9 px on a 343 px column. The pills are drawn 1:1 and their narrow ones fit on one line.
+          on the beat; entrances ease (.2,.8,.2,1), draws (.65,0,.35,1), and only loops run linear. Only the banner's cursor,
+          role line and code rain and the marquee keep moving (under reduced motion the marquee gives way to a still list);
+          the other cursors blink four times and rest lit, the link arrows nudge twice.
+  width   860 for the desktop column; where the README column is under about 600 px README.md shows each image's
+          -narrow twin, 400 wide, so no label falls under 9 px in a phone's column (viewport - 82, about 293-308 px on
+          common phones). The pills are drawn 1:1 and their narrow ones fit on one line.
 """
 import io
 import json
@@ -229,15 +231,17 @@ def hepta_at(cx, cy, d, cls):
 
 
 # ---------------------------------------------------------------------------------------------------- components
-W, NARROW = 860, 480  # the README column's two widths: desktop, and phones (shown under 600 px, about 0.75x)
+W, NARROW = 860, 400  # desktop; the phone twins, shown where the README column is under about 600 px
 
 
 def header(index, title, command, seed, w=W):
-    """(01) + a decoded title + a typed shell command with a cursor + a drawn hairline; 34 px of air above, 15 below.
+    """(01) + a decoded title + a typed shell command with a cursor + a drawn hairline; 26 px of air above and none below
+    the hairline, because README.md sets each header in an <h3> (a heading to jump to) whose margins add 24 and 16.
 
     The title is 36 px, cap height 0.6 of the banner's name, so the name leads."""
     rnd, doc = random.Random(seed), Doc()
-    base, H = 82, 112  # the title's baseline; the image's height
+    base = 74  # the title's baseline
+    H = base + 15  # the hairline is the last pixel row
     idx, _, _ = doc.text("jb500", index, 0, base - 38, 13, "ac", tracking=0.08)
     word, _, _ = decode(doc, "sg700", title, -1, base, 36, 0.1, rnd)
     cw = shape("jb400", command, 15)[1]
@@ -397,7 +401,8 @@ def icon(src):
 
 def stack(w=W):
     """Rows of brand icons and names rolling past, alternating direction: languages, then ML, LLMs and agents, then data and
-    infrastructure. One mask fades all three at the edges; at rest each row starts clear of the fade."""
+    infrastructure. One mask fades all three at the edges; at rest each row starts clear of the fade, and no copy before
+    it shows in the fade. Under reduced motion the rows give way to every name, still, as wrapped lines."""
     doc = Doc()
     pitch, size, ic, gap = 60, 22, 28, 46
     clear = math.ceil(0.08 * w) + 3  # where a row starts at rest: just past the fade's 8%
@@ -418,7 +423,7 @@ def stack(w=W):
             g_, _, nw = doc.text("sg500", name, x + ic + 11, base, size)
             seq.append(g_)
             x += ic + 11 + nw + gap
-        period = x
+        period = x + max(0, clear - gap)  # the copy before ends at x 0 or left of it, out of the fade
         defs.append(f'<g id="row{r}">{"".join(seq)}</g>')
         copies = math.ceil(w / period) + 1
         uses = "".join(f'<use href="#row{r}" x="{num(k * period + clear)}"/>' for k in range(-1, copies))
@@ -433,16 +438,51 @@ def stack(w=W):
             f'</linearGradient><mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="{w}" height="{H}">'
             f'<rect width="{w}" height="{H}" fill="url(#fd)"/></mask>')
     names = [n for row in STACK for n, _ in row]
-    return svg(w, H, "Stack: " + ", ".join(names), "Rows of brand icons and names roll past in alternating directions.",
-               doc.render(fade + "".join(defs)) + '<g class="fg" mask="url(#fade)">' + "".join(rows) + "</g>", "".join(css))
+    still = stack_still(doc, w, H)
+    css.append(".still{display:none}@media (prefers-reduced-motion: reduce){.roll{display:none}.still{display:inline}}")
+    return svg(w, H, "Stack: " + ", ".join(names), "Rows of brand icons and names roll past in alternating directions; "
+               "with reduced motion, every name stands still.", doc.render(fade + "".join(defs))
+               + '<g class="roll fg" mask="url(#fade)">' + "".join(rows) + "</g>" + still, "".join(css))
+
+
+def stack_still(doc, w, H):
+    """The stack for reduced motion: every name, a row's names joined by middots and wrapped, each row a new line, at the
+    largest size up to 18 that fits the marquee's height (17 on 860, 12.5 on 400)."""
+    sep = "  ·  "
+    for size in (18 - k / 2 for k in range(13)):  # 18 down to 12
+        lh = size * 1.6
+        lines = []
+        for items in STACK:
+            cur = []
+            for name, _ in items:
+                if cur and shape("sg500", sep.join(cur + [name]), size)[1] > w:
+                    lines.append(cur)
+                    cur = []
+                cur.append(name)
+            lines.append(cur)
+        if len(lines) * lh <= H - 6:
+            break
+    top = (H - len(lines) * lh) / 2 + size * 0.95
+    out = []
+    for i, names in enumerate(lines):
+        x, y = 0.0, top + i * lh
+        for j, name in enumerate(names):
+            if j:
+                g_, _, sw = doc.text("sg500", sep, x, y, size, "mu")
+                out.append(g_)
+                x += sw
+            g_, _, nw = doc.text("sg500", name, x, y, size, "fg")
+            out.append(g_)
+            x += nw
+    return '<g class="still">' + "".join(out) + "</g>"
 
 
 def link(label, icon=False, delay=0.0, narrow=False):
-    """A pill, drawn at its own size (1:1 on the page); the narrow one keeps all three on one line in a 343 px column."""
+    """A pill, drawn at its own size (1:1 on the page); the narrow ones fit all three on one line in a 278 px column (a 360 px phone)."""
     doc = Doc()
-    size, track, pad, ar, gap, Hb = (10.5, 0.06, 10, 8, 7, 32) if narrow else (12.5, 0.12, 20, 12, 12, 44)
+    size, track, pad, ar, gap, Hb = (10, 0.02, 6, 7, 4, 30) if narrow else (12.5, 0.12, 20, 12, 12, 44)
     w = shape("jb500", label, size, track)[1]
-    ic, mark = (16, 10) if narrow else (22, 13)  # the mark's slot and size
+    ic, mark = (14, 10) if narrow else (22, 13)  # the mark's slot and size
     ic = ic if icon else 0
     Wb = pad + ic + w + gap + ar + pad
     x = pad + ic
@@ -476,16 +516,18 @@ def footer(w=W):
 
 # ---------------------------------------------------------------------------------------------------- the banner
 # (card, the terminal window in it, the text's left inset), each row as (size, baseline), the cursor's (top, height) on each
-# row, the ink gradient's reach and the glow. The narrow card's window fills it, so the type is about 0.75x on a phone.
+# row, the ink gradient's reach and the glow. The narrow card's window fills it, so the type is about 0.75x on a phone;
+# its role line wraps after a " · " onto role2's baseline where it would pass the window.
 WIDE = dict(card=(1200, 320), win=(170, 44, 860, 236), inset=34, title=13, prompt=(22, 122), name=(78, 204), role=(19, 250),
             nudge=3, cur=((104, 23.3), (144, 72), (234.4, 20.1)), ink=430, glow=7)
-SLIM = dict(card=(NARROW, 268), win=(14, 36, 452, 196), inset=22, title=12, prompt=(16, 104), name=(60, 170), role=(13, 206),
-            nudge=2.3, cur=((90.9, 16.9), (123.8, 55.4), (195.3, 13.8)), ink=331, glow=5.4)
+SLIM = dict(card=(NARROW, 288), win=(8, 36, NARROW - 16, 216), inset=16, title=12, prompt=(16, 104), name=(60, 170),
+            role=(13, 206), role2=228, nudge=2.3, cur=((90.9, 16.9), (123.8, 55.4), (195.3, 13.8), (217.3, 13.8)), ink=331,
+            glow=5.4)
 
 
 def banner(seed=17, lay=WIDE):
     """A terminal types whoami and the name once, then loops the role line: a role types, holds, deletes back to the // and
-    the other role types. JetBrains Mono; the cursor blinks for good."""
+    the other role types. JetBrains Mono; the cursor blinks and the code symbols behind fall for good."""
     rnd, doc = random.Random(seed), Doc()
     adv = lambda size: 0.6 * size
     (BW, BH), (WX, WY, WW, WH) = lay["card"], lay["win"]
@@ -503,13 +545,23 @@ def banner(seed=17, lay=WIDE):
     p_cmd, _, _ = row("jb400", "whoami", x_cmd, py, ps)
     p_name, _, _ = line("jb700", "Wentao He", LX - lay["nudge"], ny, ns)  # paths in place: a <use> would shift the ink gradient
     p_pre, xp0, wp = row("jb400", "// ", LX, ry, rs)
-    p_a, _, _ = row("jb400", "Engineering Lead, Multimodal @ Mercor", xp0 + wp, ry, rs)
-    p_b, _, _ = row("jb400", "engineer · developer · photographer · powerlifter", xp0 + wp, ry, rs)
+    base_y = {3: ry, 4: lay.get("role2")}
+
+    def role(text):  # [(char, glyph, x, row)]: row 3, and past the window's inner edge the rest after a " · " on row 4
+        right = WX + WW - lay["inset"] - adv(rs)  # room for the cursor
+        fits = lambda s: xp0 + wp + shape("jb400", s, rs)[1] <= right
+        cut = max((i for i in range(len(text)) if text.startswith(" · ", i) and fits(text[:i + 2])), default=None)
+        if fits(text) or cut is None or not base_y[4]:
+            return [(ch, g, x, 3) for ch, g, x in row("jb400", text, xp0 + wp, ry, rs)[0]]
+        return ([(ch, g, x, 3) for ch, g, x in row("jb400", text[:cut + 2], xp0 + wp, ry, rs)[0]]
+                + [(ch, g, x, 4) for ch, g, x in row("jb400", text[cut + 3:], xp0 + wp, base_y[4], rs)[0]])
+    p_a = role("Engineering Lead, Multimodal @ Mercor")
+    p_b = role("engineer · developer · photographer · powerlifter")
     p_title, _, _ = row("jb400", "wentao@sf: ~ — zsh", WX + WW / 2, WY + 22, ts, anchor="middle")
 
     def times(glyphs, t0, lo, hi, space=None):
         out, t = [], t0
-        for ch, _, _ in glyphs:
+        for ch, *_ in glyphs:
             out.append(t)
             t += space if (space and ch == " ") else rnd.uniform(lo, hi)
         return out
@@ -540,10 +592,10 @@ def banner(seed=17, lay=WIDE):
 
     def looped(glyphs, ts, td, cls, shown):
         n, out = len(glyphs), []
-        for i, ((_, g, x), t) in enumerate(zip(glyphs, ts)):
+        for i, ((_, g, x, r), t) in enumerate(zip(glyphs, ts)):
             if doc.glyph("jb400", g, rs):
                 k = keyframes([(0, 0), (t, 1), (td[n - 1 - i], 0)], L, "opacity")
-                out.append(doc.use("jb400", g, rs, x, ry, ("" if shown else ' opacity="0"')
+                out.append(doc.use("jb400", g, rs, x, base_y[r], ("" if shown else ' opacity="0"')
                                    + f' class="cm" style="animation:{k} {num(L)}s step-end {num(t0)}s infinite both"'))
         return "".join(out)
     g_cmd = typed_once(p_cmd, t_cmd, "jb400", ps, py, "tx")
@@ -553,7 +605,7 @@ def banner(seed=17, lay=WIDE):
 
     def box(row_, x):
         top, h = lay["cur"][row_ - 1]
-        return x, top, adv((ps, ns, rs)[row_ - 1]), h
+        return x, top, adv((ps, ns, rs, rs)[row_ - 1]), h
     tf = lambda b: f"translate({num(b[0])}px,{num(b[1])}px) scale({num(b[2])},{num(b[3])})"
     home = box(3, xp0 + wp)  # after the //, where the loop starts and ends
     bp0 = [(0.0, box(1, x_cmd))]
@@ -565,10 +617,10 @@ def banner(seed=17, lay=WIDE):
     bp0.append((t0, home))
     n, nb = len(p_a), len(p_b)
     bp1 = [(0.0, home)]
-    bp1 += [(t, box(3, gx + adv(rs))) for (_, _, gx), t in zip(p_a, t_a)]
-    bp1 += [(t_da[n - 1 - i], box(3, gx)) for i, (_, _, gx) in enumerate(p_a)]
-    bp1 += [(t, box(3, gx + adv(rs))) for (_, _, gx), t in zip(p_b, t_b)]
-    bp1 += [(t_db[nb - 1 - i], box(3, gx)) for i, (_, _, gx) in enumerate(p_b)]
+    bp1 += [(t, box(r, gx + adv(rs))) for (_, _, gx, r), t in zip(p_a, t_a)]
+    bp1 += [(t_da[n - 1 - i], box(r, gx)) for i, (_, _, gx, r) in enumerate(p_a)]
+    bp1 += [(t, box(r, gx + adv(rs))) for (_, _, gx, r), t in zip(p_b, t_b)]
+    bp1 += [(t_db[nb - 1 - i], box(r, gx)) for i, (_, _, gx, r) in enumerate(p_b)]
     bp1.append((L, home))
     cur0 = keyframes([(t, tf(b)) for t, b in bp0], t0, "transform")
     cur1 = keyframes([(t, tf(b)) for t, b in bp1], L, "transform")
@@ -590,7 +642,7 @@ def banner(seed=17, lay=WIDE):
                       t0, "opacity")
     curb1 = keyframes(blinks([(t_a[0], t_a[-1] + 0.12), (t_da[0], t_da[-1] + 0.05), (t_b[0], t_b[-1] + 0.12),
                               (t_db[0], t_db[-1] + 0.05)], L), L, "opacity")
-    rest = box(3, p_a[-1][2] + adv(rs))  # the final frame: the role line typed, the cursor after it
+    rest = box(p_a[-1][3], p_a[-1][2] + adv(rs))  # the final frame: the role line typed, the cursor after it
     cursor_el = (f'<g style="animation:{curb0} {num(t0)}s step-end,{curb1} {num(L)}s step-end {num(t0)}s infinite">'
                  f'<rect class="cu" width="1" height="1" transform="translate({num(rest[0])} {num(rest[1])}) '
                  f'scale({num(rest[2])} {num(rest[3])})" style="animation:{cur0} {num(t0)}s step-end,'
@@ -635,7 +687,7 @@ def banner(seed=17, lay=WIDE):
 # ---------------------------------------------------------------------------------------------------- the daily kit
 STAT_SIZE = 54
 MONO_SIZE = 13
-MONO_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.–—·/+%:"
+MONO_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-–—·/+%:"
 
 
 def kit():
@@ -664,7 +716,7 @@ def kit():
 
 if __name__ == "__main__":
     files = {}
-    for sfx, narrow in (("", False), ("-narrow", True)):  # README.md shows the -narrow ones under 600 px
+    for sfx, narrow in (("", False), ("-narrow", True)):  # README.md shows the -narrow ones in a column under about 600 px
         w = NARROW if narrow else W
         files.update({
             f"banner{sfx}.svg": banner(lay=SLIM if narrow else WIDE),
