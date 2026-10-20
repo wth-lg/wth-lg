@@ -87,10 +87,6 @@ def line(key, text, x, baseline, size, anchor="start", tracking=0.0, features=No
     return [(ch, outline(key, g, x0 + gx, baseline, size), x0 + gx) for g, gx, ch in glyphs], x0, w
 
 
-def path_group(glyphs, cls, extra=""):
-    return f'<g class="{cls}"{extra}>' + "".join(f'<path d="{d}"/>' for _, d, _ in glyphs if d) + "</g>"
-
-
 # wentao.gg's mark, app/icon.svg: the heptadecagon (17 sides, corners softened), drawn in a 100 x 100 box
 HEPTA = ("M47.54 9.46Q50 9 52.46 9.46L62.35 11.31Q64.81 11.77 66.94 13.08L75.5 18.38Q77.62 19.7 79.13 21.7L85.2 29.73"
          "Q86.7 31.72 87.39 34.13L90.14 43.81Q90.83 46.22 90.59 48.71L89.67 58.73Q89.43 61.22 88.32 63.46L83.83 72.47"
@@ -98,11 +94,6 @@ HEPTA = ("M47.54 9.46Q50 9 52.46 9.46L62.35 11.31Q64.81 11.77 66.94 13.08L75.5 1
          "Q42.47 90.3 40.14 89.4L30.75 85.76Q28.42 84.86 26.57 83.17L19.13 76.39Q17.28 74.71 16.17 72.47L11.68 63.46"
          "Q10.57 61.22 10.33 58.73L9.41 48.71Q9.17 46.22 9.86 43.81L12.61 34.13Q13.3 31.72 14.8 29.73L20.87 21.7"
          "Q22.38 19.7 24.5 18.38L33.06 13.08Q35.19 11.77 37.65 11.31Z")
-
-
-def hepta(cx, cy, d, cls, extra=""):
-    s = d / 81.3  # the mark spans 81.3 of its 100 units
-    return f'<path class="{cls}" transform="translate({num(cx - 50 * s)} {num(cy - 50 * s)}) scale({num(s)})" d="{HEPTA}"{extra}/>'
 
 
 def arrow(x, y, s, cls):
@@ -115,9 +106,9 @@ def arrow(x, y, s, cls):
 # ---------------------------------------------------------------------------------------------------- colour + motion
 THEME = """
 .fg{fill:#e8e8e2}.mu{fill:#8b8b94}.ac{fill:#60a5fa}.bl{fill:#2563eb}
-.sfg{stroke:#e8e8e2}.smu{stroke:#8b8b94}.shl{stroke:#30363d}.spl{stroke:#6e7681}.sac{stroke:#60a5fa}.sbl{stroke:#2563eb}
+.sfg{stroke:#e8e8e2}.smu{stroke:#8b8b94}.shl{stroke:#30363d}.spl{stroke:#6e7681}
 @media (prefers-color-scheme: light){.fg{fill:#0b0d12}.mu{fill:#626c7a}.ac{fill:#2563eb}
-.sfg{stroke:#0b0d12}.smu{stroke:#626c7a}.shl{stroke:#d0d7de}.spl{stroke:#8c959f}.sac{stroke:#2563eb}}
+.sfg{stroke:#0b0d12}.smu{stroke:#626c7a}.shl{stroke:#d0d7de}.spl{stroke:#8c959f}}
 """
 # drawx scales a rule in, so a renderer that does not animate draws it whole
 MOTION = """
@@ -233,7 +224,7 @@ def hairline(x1, y, x2, t, dur=0.8, cls="shl"):
 
 
 def hepta_at(cx, cy, d, cls):
-    s = d / 81.3
+    s = d / 81.3  # the mark spans 81.3 of its 100 units
     return f'<g transform="translate({num(cx - 50 * s)} {num(cy - 50 * s)}) scale({num(s)})"><path class="{cls}" d="{HEPTA}"/></g>'
 
 

@@ -174,7 +174,7 @@ def rule(x1, y1, x2, y2, t, dur=0.8):
     draws it whole (a dash offset drew it dotted)."""
     across = y1 == y2
     return (f'<line class="shl" x1="{num(x1)}" y1="{num(y1)}" x2="{num(x2)}" y2="{num(y2)}" stroke-width="1" '
-            f'style="transform-origin:{num(x1)}px {num(y1)}px;animation:{"gx" if across else "gy"} {num(dur)}s '
+            f'style="transform-origin:{num(x1)}px {num(y1)}px;animation:{"drawx" if across else "gy"} {num(dur)}s '
             f'cubic-bezier(.65,0,.35,1) {num(t)}s both"/>')
 
 
@@ -298,7 +298,7 @@ def stats_svg(s, narrow=False):
         gv, cv = mono(f"{v:,}", bx + w + 8, y, "fg")
         chars |= c | cv
         body.append(f'{g}<rect class="bl" x="{bx}" y="{y - 9}" width="{num(w)}" height="9" '
-                    f'style="transform-origin:{bx}px 0;animation:gx .8s cubic-bezier(.2,.8,.2,1) {num(t)}s both"/>'
+                    f'style="transform-origin:{bx}px 0;animation:drawx .8s cubic-bezier(.2,.8,.2,1) {num(t)}s both"/>'
                     f'<g style="animation:wait {num(t + 0.8)}s step-end">{gv}</g>')
 
     defs = ["".join(f'<path id="d{k}" d="{KIT["digits"][str(k)]["d"]}"/>' for k in range(10)),
@@ -306,7 +306,7 @@ def stats_svg(s, narrow=False):
             "".join(f'<path id="m{ord(ch)}" d="{KIT["mono"]["glyphs"][ch]}"/>' for ch in sorted(chars)),
             f'<clipPath id="cl"><rect x="0" y="{num(-size * 0.82)}" width="{W}" height="{num(size * 1.0)}"/></clipPath>']
     motion = (f"@keyframes roll{{from{{transform:translateY({num(-ROLL * size * 1.25)}px)}}}}"
-              "@keyframes gy{from{transform:scaleY(0)}}@keyframes gx{from{transform:scaleX(0)}}")
+              "@keyframes gy{from{transform:scaleY(0)}}")  # drawx comes with the kit
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
             f'aria-labelledby="t"><title id="t">{escape(alt_text(s))}</title><!-- Drawn daily by scripts/daily.py. -->\n'
             f'<style>{KIT["css"]}{motion}</style>\n<defs>{"".join(defs)}</defs>{"".join(body)}\n</svg>\n')
