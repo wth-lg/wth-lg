@@ -119,12 +119,10 @@ THEME = """
 @media (prefers-color-scheme: light){.fg{fill:#0b0d12}.mu{fill:#626c7a}.ac{fill:#2563eb}
 .sfg{stroke:#0b0d12}.smu{stroke:#626c7a}.shl{stroke:#d0d7de}.spl{stroke:#8c959f}.sac{stroke:#2563eb}}
 """
-# draw is stats.svg's dashed rule (scripts/daily.py); drawx scales a rule in here, and a renderer that does not animate
-# draws it whole
+# drawx scales a rule in, so a renderer that does not animate draws it whole
 MOTION = """
 @keyframes wait{0%,100%{opacity:0}}
 @keyframes flash{0%,100%{opacity:1}}
-@keyframes draw{from{stroke-dashoffset:1}}
 @keyframes drawx{from{transform:scaleX(0)}}
 @keyframes blink{0%,49.9%{opacity:1}50%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important}}
