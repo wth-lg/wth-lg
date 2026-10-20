@@ -15,6 +15,8 @@ The design system, wentao.gg's identity set the way the Awwwards Sites of the Ye
           on the beat; entrances ease (.2,.8,.2,1), draws (.65,0,.35,1), and only loops run linear. Only the banner's cursor
           and role line and the marquee keep moving; the other cursors blink four times and rest lit, the link arrows nudge
           twice.
+  width   860 for the desktop column; under 600 px README.md shows each image's -narrow twin, 480 wide, drawn about 0.75x,
+          so no label falls under 9 px on a 343 px column. The pills are drawn 1:1 and their narrow ones fit on one line.
 """
 import io
 import json
@@ -238,10 +240,10 @@ def hepta_at(cx, cy, d, cls):
 
 
 # ---------------------------------------------------------------------------------------------------- components
-W = 860
+W, NARROW = 860, 480  # the README column's two widths: desktop, and phones (shown under 600 px, about 0.75x)
 
 
-def header(index, title, command, seed):
+def header(index, title, command, seed, w=W):
     """(01) + a decoded title + a typed shell command with a cursor + a drawn hairline; 34 px of air above, 15 below.
 
     The title is 36 px, cap height 0.6 of the banner's name, so the name leads."""
@@ -250,11 +252,11 @@ def header(index, title, command, seed):
     idx, _, _ = doc.text("jb500", index, 0, base - 38, 13, "ac", tracking=0.08)
     word, _, _ = decode(doc, "sg700", title, -1, base, 36, 0.1, rnd)
     cw = shape("jb400", command, 15)[1]
-    cx0 = W - 14 - cw
+    cx0 = w - 14 - cw
     dollar, _, _ = doc.text("jb400", "$ ", cx0, base - 2, 15, "ac", anchor="end", attrs=f' style="{wait(0.4)}"')
     cmd, _, t_cmd = typed(doc, "jb400", command, cx0, base - 2, 15, 0.5, 0.05, "mu")
-    body = (idx + word + dollar + cmd + cursor(W - 10, base - 15, 8, 16, t_cmd) + hairline(0, base + 14.5, W, 0.1, 1.0))
-    return svg(W, H, f"{index} {title}: {command}",
+    body = (idx + word + dollar + cmd + cursor(w - 10, base - 15, 8, 16, t_cmd) + hairline(0, base + 14.5, w, 0.1, 1.0))
+    return svg(w, H, f"{index} {title}: {command}",
                f"Section {index}, {title}. The title resolves out of code glyphs; the command {command} types beside it.",
                doc.render() + body)
 
@@ -265,21 +267,36 @@ REPL = [  # (prompt, code, result, comment): the About, short, pointing at wenta
 ]
 
 
-def about():
+def about(w=W):
     """A Python session: what Multimodal means, then where everything else lives. Each command types to two letters past
-    the dot and Tab completes it, as python3 -i does; results land two beats later, the last prompt by 1.9 s."""
+    the dot and Tab completes it, as python3 -i does; results land two beats later, the last prompt by 1.9 s. A result too
+    long for the box wraps as pprint's compact form does, and its comment drops to the next line."""
     doc = Doc()
     size, lh, x0, top = 15, 30, 26, 46
-    H = top + lh * (2 * len(REPL) + 1) - 2
-    body = [f'<rect class="shl" x=".75" y=".75" width="{W - 1.5}" height="{H - 1.5}" rx="12" fill="none" stroke-width="1.5"/>',
-            doc.text("jb400", "python3", W - 22, 28, 11.5, "mu", anchor="end", tracking=0.06)[0]]
+    fits = lambda s: shape("jb400", s, size)[1] <= w - 2 * x0
+
+    def wrap(result, comment):  # [(result, comment)], one per line
+        if fits(result + comment):
+            return [(result, comment)]
+        rows, cur = [], ""
+        for item in re.split(r"(?<=,) ", result):
+            if cur and not fits(cur + " " + item):
+                rows.append(cur)
+                cur = " " + item
+            else:
+                cur = f"{cur} {item}" if cur else item
+        return [(r, "") for r in rows + [cur]] + ([("", comment.strip())] if comment else [])
+    wraps = [wrap(result, comment) for _, _, result, comment in REPL]
+    H = top + lh * (len(REPL) + sum(map(len, wraps)) + 1) - 2
+    body = [f'<rect class="shl" x=".75" y=".75" width="{w - 1.5}" height="{H - 1.5}" rx="12" fill="none" stroke-width="1.5"/>',
+            doc.text("jb400", "python3", w - 22, 28, 11.5 if w == W else 12.5, "mu", anchor="end", tracking=0.06)[0]]
     t, y = 0.1, top
 
     def tokens(s):  # strings blue, punctuation muted, the rest paper
         for m in re.finditer(r"'[^']*'|[\[\](),.]|[^'\[\](),.]+", s):
             tok = m.group(0)
             yield tok, ("st" if tok.startswith("'") else "mu" if tok in "[](),." else "fg")
-    for prompt, code, result, comment in REPL:
+    for (prompt, code, _, _), rows in zip(REPL, wraps):
         body.append(doc.text("jb400", prompt, x0, y, size, "ac", attrs=f' style="{wait(t)}"')[0])
         pw = shape("jb400", prompt, size)[1]
         cut = code.index(".") + 3
@@ -287,15 +304,16 @@ def about():
         done, _, _ = typed(doc, "jb400", code[cut:], x0 + pw + cw, y, size, t + BEAT / 2, 0, "fg")
         body.append(typed_code + done)
         t += BEAT / 2 + 2 * BEAT
-        y += lh
-        x = x0
         parts = []
-        for tok, cls in tokens(result):
-            g_, _, w_ = doc.text("jb400", tok, x, y, size, cls)
-            parts.append(g_)
-            x += w_
-        if comment:
-            parts.append(doc.text("jb400", comment, x, y, size, "mu")[0])
+        for result, comment in rows:
+            y += lh
+            x = x0
+            for tok, cls in tokens(result):
+                g_, _, w_ = doc.text("jb400", tok, x, y, size, cls)
+                parts.append(g_)
+                x += w_
+            if comment:
+                parts.append(doc.text("jb400", comment, x, y, size, "mu")[0])
         body.append(f'<g style="{wait(t)}">' + "".join(parts) + "</g>")
         t += BEAT
         y += lh
@@ -303,7 +321,7 @@ def about():
     body.append(cursor(x0 + shape("jb400", ">>> ", size)[1], y - 12.5, 9, 16, t))
     alt = " ".join(f"{p}{c} → {r}{cm}" for p, c, r, cm in REPL)
     css = ".st{fill:#93c5fd}@media (prefers-color-scheme: light){.st{fill:#1d4ed8}}"
-    return svg(W, H, "About: a Python session", alt, doc.render() + "".join(body), css)
+    return svg(w, H, "About: a Python session", alt, doc.render() + "".join(body), css)
 
 
 # Simple Icons (CC0) and, where a brand left it (AWS), Devicon (MIT); pinned, fetched at build time, drawn in the theme's ink
@@ -388,12 +406,12 @@ def icon(src):
     return tidy(" ".join(re.findall(r'<path[^>]*\sd="([^"]+)"', svg_))), box
 
 
-def stack():
+def stack(w=W):
     """Rows of brand icons and names rolling past, alternating direction: languages, then ML, LLMs and agents, then data and
     infrastructure. One mask fades all three at the edges; at rest each row starts clear of the fade."""
     doc = Doc()
     pitch, size, ic, gap = 60, 22, 28, 46
-    clear = 72  # where a row starts at rest: past the fade's 8%, 68.8 px
+    clear = math.ceil(0.08 * w) + 3  # where a row starts at rest: just past the fade's 8%
     H = 14 + pitch * len(STACK)
     rows, css, defs = [], [], []
     seen = {}
@@ -408,12 +426,12 @@ def stack():
                 defs.append(f'<path id="{seen[src][0]}" d="{d}"{rule}/>')
             iid, box = seen[src]
             seq.append(f'<use href="#{iid}" transform="translate({num(x)} {num(base - ic + 4)}) scale({num(ic / box)})"/>')
-            g_, _, w = doc.text("sg500", name, x + ic + 11, base, size)
+            g_, _, nw = doc.text("sg500", name, x + ic + 11, base, size)
             seq.append(g_)
-            x += ic + 11 + w + gap
+            x += ic + 11 + nw + gap
         period = x
         defs.append(f'<g id="row{r}">{"".join(seq)}</g>')
-        copies = math.ceil(W / period) + 1
+        copies = math.ceil(w / period) + 1
         uses = "".join(f'<use href="#row{r}" x="{num(k * period + clear)}"/>' for k in range(-1, copies))
         dur = period / 50  # about 50 px a second (the owner, 2026-10-02: "can scroll a bit faster")
         if r % 2 == 0:
@@ -423,72 +441,82 @@ def stack():
         rows.append(f'<g style="animation:drift{r} {num(dur)}s linear infinite">{uses}</g>')
     fade = ('<linearGradient id="fd" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/>'
             '<stop offset=".08" stop-color="#fff"/><stop offset=".92" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>'
-            f'</linearGradient><mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{H}">'
-            f'<rect width="{W}" height="{H}" fill="url(#fd)"/></mask>')
+            f'</linearGradient><mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="{w}" height="{H}">'
+            f'<rect width="{w}" height="{H}" fill="url(#fd)"/></mask>')
     names = [n for row in STACK for n, _ in row]
-    return svg(W, H, "Stack: " + ", ".join(names), "Rows of brand icons and names roll past in alternating directions.",
+    return svg(w, H, "Stack: " + ", ".join(names), "Rows of brand icons and names roll past in alternating directions.",
                doc.render(fade + "".join(defs)) + '<g class="fg" mask="url(#fade)">' + "".join(rows) + "</g>", "".join(css))
 
 
-def link(label, icon=False, delay=0.0):
+def link(label, icon=False, delay=0.0, narrow=False):
+    """A pill, drawn at its own size (1:1 on the page); the narrow one keeps all three on one line in a 343 px column."""
     doc = Doc()
-    size, track = 12.5, 0.12
+    size, track, pad, ar, gap, Hb = (10.5, 0.06, 10, 8, 7, 32) if narrow else (12.5, 0.12, 20, 12, 12, 44)
     w = shape("jb500", label, size, track)[1]
-    pad, ic, ar = 20, (22 if icon else 0), 12
-    Wb, Hb = pad + ic + w + 12 + ar + pad, 44
+    ic, mark = (16, 10) if narrow else (22, 13)  # the mark's slot and size
+    ic = ic if icon else 0
+    Wb = pad + ic + w + gap + ar + pad
     x = pad + ic
     body = [f'<rect class="spl" x=".75" y=".75" width="{num(Wb - 1.5)}" height="{Hb - 1.5}" rx="{(Hb - 1.5) / 2}" fill="none" stroke-width="1.5"/>']
     if icon:
-        body.append(hepta_at(pad + 7, Hb / 2, 13, "bl"))
-    body.append(doc.text("jb500", label, x, Hb / 2 + 4.5, size, "fg", tracking=track)[0])
-    ax, ay = x + w + 12, Hb / 2 - ar / 2
-    css = ("@keyframes nudge{0%,84%{transform:translate(0,0);opacity:1}88%{transform:translate(7px,-7px);opacity:0}"
-           "88.1%{transform:translate(-7px,7px);opacity:0}93%,100%{transform:translate(0,0);opacity:1}}")
+        body.append(hepta_at(pad + mark / 2 + 0.5, Hb / 2, mark, "bl"))
+    body.append(doc.text("jb500", label, x, Hb / 2 + 0.36 * size, size, "fg", tracking=track)[0])
+    ax, ay, nd = x + w + gap, Hb / 2 - ar / 2, num(ar * 7 / 12)
+    css = (f"@keyframes nudge{{0%,84%{{transform:translate(0,0);opacity:1}}88%{{transform:translate({nd}px,-{nd}px);opacity:0}}"
+           f"88.1%{{transform:translate(-{nd}px,{nd}px);opacity:0}}93%,100%{{transform:translate(0,0);opacity:1}}}}")
     body.append(f'<clipPath id="ac"><rect x="{num(ax - 2)}" y="{num(ay - 2)}" width="{ar + 4}" height="{ar + 4}"/></clipPath>'
                 f'<g clip-path="url(#ac)"><g style="animation:nudge 6s {ENTER} {num(delay)}s 2">{arrow(ax, ay, ar, "sfg")}</g></g>')
     return svg(math.ceil(Wb), Hb, label, f"{label}, a link", doc.render() + "".join(body), css)
 
 
-def footer():
+def footer(w=W):
+    """The session ends on the left, the colophon on the right; on a phone the colophon sits under the session."""
     doc = Doc()
-    H = 96
-    body = [hairline(0, 1, W, 0.1, 1.0), hepta_at(9, 45, 16, "bl")]
+    H = 96 if w == W else 154
+    body = [hairline(0, 1, w, 0.1, 1.0), hepta_at(9, 45, 16, "bl")]
     prompt, px0, pw = doc.text("jb400", "wentao@sf ~ $ ", 30, 50, 14, "mu")
     ex, _, t_ex = typed(doc, "jb400", "exit", px0 + pw, 50, 14, 0.9, BEAT, "fg")
     done = doc.text("jb400", "[Process completed]", 30, 74, 14, "mu", attrs=f' style="{wait(t_ex + 0.5)}"')[0]
-    right1 = doc.text("jb500", "© 2026 WENTAO HE", W, 50, 11.5, "fg", anchor="end", tracking=0.1)[0]
-    right2 = doc.text("jb400", "SAN FRANCISCO  ·  37.77° N, 122.42° W", W, 74, 11.5, "mu", anchor="end", tracking=0.06)[0]
+    x, y, size, anchor = (W, 50, 11.5, "end") if w == W else (30, 108, 12.5, "start")
+    right1 = doc.text("jb500", "© 2026 WENTAO HE", x, y, size, "fg", anchor=anchor, tracking=0.1)[0]
+    right2 = doc.text("jb400", "SAN FRANCISCO  ·  37.77° N, 122.42° W", x, y + 24, size, "mu", anchor=anchor, tracking=0.06)[0]
     body += [prompt, ex, done, right1, right2]
-    return svg(W, H, "wentao@sf ~ $ exit", "The session ends: exit types, then [Process completed]. © 2026 Wentao He, San Francisco.",
+    return svg(w, H, "wentao@sf ~ $ exit", "The session ends: exit types, then [Process completed]. © 2026 Wentao He, San Francisco.",
                doc.render() + "".join(body))
 
 
 # ---------------------------------------------------------------------------------------------------- the banner
-BW, BH = 1200, 320
-WX, WY, WW, WH = 170, 44, 860, 236  # the terminal window
-LX = WX + 34
+# (card, the terminal window in it, the text's left inset), each row as (size, baseline), the cursor's (top, height) on each
+# row, the ink gradient's reach and the glow. The narrow card's window fills it, so the type is about 0.75x on a phone.
+WIDE = dict(card=(1200, 320), win=(170, 44, 860, 236), inset=34, title=13, prompt=(22, 122), name=(78, 204), role=(19, 250),
+            nudge=3, cur=((104, 23.3), (144, 72), (234.4, 20.1)), ink=430, glow=7)
+SLIM = dict(card=(NARROW, 268), win=(14, 36, 452, 196), inset=22, title=12, prompt=(16, 104), name=(60, 170), role=(13, 206),
+            nudge=2.3, cur=((90.9, 16.9), (123.8, 55.4), (195.3, 13.8)), ink=331, glow=5.4)
 
 
-def banner(seed=17):
+def banner(seed=17, lay=WIDE):
     """A terminal types whoami and the name once, then loops the role line: a role types, holds, deletes back to the // and
     the other role types. JetBrains Mono; the cursor blinks for good."""
     rnd, doc = random.Random(seed), Doc()
     adv = lambda size: 0.6 * size
+    (BW, BH), (WX, WY, WW, WH) = lay["card"], lay["win"]
+    LX = WX + lay["inset"]
+    (ps, py), (ns, ny), (rs, ry), ts = lay["prompt"], lay["name"], lay["role"], lay["title"]
 
     def row(key, text, x, baseline, size, anchor="start"):  # line() as [(char, glyph, x)], for the Doc
         glyphs, w = shape(key, text, size)
         x0 = x - w if anchor == "end" else x - w / 2 if anchor == "middle" else x
         return [(ch, g, x0 + gx) for g, gx, ch in glyphs], x0, w
-    p_user, x1, w1 = row("jb400", "wentao@sf", LX, 122, 22)
-    p_path, x2, w2 = row("jb400", " ~ ", x1 + w1, 122, 22)
-    p_dollar, x3, w3 = row("jb400", "$ ", x2 + w2, 122, 22)
+    p_user, x1, w1 = row("jb400", "wentao@sf", LX, py, ps)
+    p_path, x2, w2 = row("jb400", " ~ ", x1 + w1, py, ps)
+    p_dollar, x3, w3 = row("jb400", "$ ", x2 + w2, py, ps)
     x_cmd = x3 + w3
-    p_cmd, _, _ = row("jb400", "whoami", x_cmd, 122, 22)
-    p_name, _, _ = line("jb700", "Wentao He", LX - 3, 204, 78)  # paths in place: a <use> would shift the ink gradient
-    p_pre, xp0, wp = row("jb400", "// ", LX, 250, 19)
-    p_a, _, _ = row("jb400", "Engineering Lead, Multimodal @ Mercor", xp0 + wp, 250, 19)
-    p_b, _, _ = row("jb400", "engineer · developer · photographer · powerlifter", xp0 + wp, 250, 19)
-    p_title, _, _ = row("jb400", "wentao@sf: ~ — zsh", WX + WW / 2, WY + 22, 13, anchor="middle")
+    p_cmd, _, _ = row("jb400", "whoami", x_cmd, py, ps)
+    p_name, _, _ = line("jb700", "Wentao He", LX - lay["nudge"], ny, ns)  # paths in place: a <use> would shift the ink gradient
+    p_pre, xp0, wp = row("jb400", "// ", LX, ry, rs)
+    p_a, _, _ = row("jb400", "Engineering Lead, Multimodal @ Mercor", xp0 + wp, ry, rs)
+    p_b, _, _ = row("jb400", "engineer · developer · photographer · powerlifter", xp0 + wp, ry, rs)
+    p_title, _, _ = row("jb400", "wentao@sf: ~ — zsh", WX + WW / 2, WY + 22, ts, anchor="middle")
 
     def times(glyphs, t0, lo, hi, space=None):
         out, t = [], t0
@@ -524,32 +552,33 @@ def banner(seed=17):
     def looped(glyphs, ts, td, cls, shown):
         n, out = len(glyphs), []
         for i, ((_, g, x), t) in enumerate(zip(glyphs, ts)):
-            if doc.glyph("jb400", g, 19):
+            if doc.glyph("jb400", g, rs):
                 k = keyframes([(0, 0), (t, 1), (td[n - 1 - i], 0)], L, "opacity")
-                out.append(doc.use("jb400", g, 19, x, 250, ("" if shown else ' opacity="0"')
+                out.append(doc.use("jb400", g, rs, x, ry, ("" if shown else ' opacity="0"')
                                    + f' class="cm" style="animation:{k} {num(L)}s step-end {num(t0)}s infinite both"'))
         return "".join(out)
-    g_cmd = typed_once(p_cmd, t_cmd, "jb400", 22, 122, "tx")
+    g_cmd = typed_once(p_cmd, t_cmd, "jb400", ps, py, "tx")
     g_name = "".join(f'<path class="nm" style="{wait(t)}" d="{d}"/>' for (_, d, _), t in zip(p_name, t_name) if d)
-    g_pre = typed_once(p_pre, t_pre, "jb400", 19, 250, "cm")
+    g_pre = typed_once(p_pre, t_pre, "jb400", rs, ry, "cm")
     g_role = looped(p_a, t_a, t_da, "cm", True) + looped(p_b, t_b, t_db, "cm", False)
 
     def box(row_, x):
-        return {1: (x, 104, adv(22), 23.3), 2: (x, 144, adv(78), 72), 3: (x, 234.4, adv(19), 20.1)}[row_]
+        top, h = lay["cur"][row_ - 1]
+        return x, top, adv((ps, ns, rs)[row_ - 1]), h
     tf = lambda b: f"translate({num(b[0])}px,{num(b[1])}px) scale({num(b[2])},{num(b[3])})"
     home = box(3, xp0 + wp)  # after the //, where the loop starts and ends
     bp0 = [(0.0, box(1, x_cmd))]
-    bp0 += [(t, box(1, gx + adv(22))) for (_, _, gx), t in zip(p_cmd, t_cmd)]
+    bp0 += [(t, box(1, gx + adv(ps))) for (_, _, gx), t in zip(p_cmd, t_cmd)]
     bp0.append((enter2, box(2, p_name[0][2])))
-    bp0 += [(t, box(2, gx + adv(78))) for (_, _, gx), t in zip(p_name, t_name)]
+    bp0 += [(t, box(2, gx + adv(ns))) for (_, _, gx), t in zip(p_name, t_name)]
     bp0.append((enter3, box(3, LX)))
-    bp0 += [(t, box(3, gx + adv(19))) for (_, _, gx), t in zip(p_pre, t_pre)]
+    bp0 += [(t, box(3, gx + adv(rs))) for (_, _, gx), t in zip(p_pre, t_pre)]
     bp0.append((t0, home))
     n, nb = len(p_a), len(p_b)
     bp1 = [(0.0, home)]
-    bp1 += [(t, box(3, gx + adv(19))) for (_, _, gx), t in zip(p_a, t_a)]
+    bp1 += [(t, box(3, gx + adv(rs))) for (_, _, gx), t in zip(p_a, t_a)]
     bp1 += [(t_da[n - 1 - i], box(3, gx)) for i, (_, _, gx) in enumerate(p_a)]
-    bp1 += [(t, box(3, gx + adv(19))) for (_, _, gx), t in zip(p_b, t_b)]
+    bp1 += [(t, box(3, gx + adv(rs))) for (_, _, gx), t in zip(p_b, t_b)]
     bp1 += [(t_db[nb - 1 - i], box(3, gx)) for i, (_, _, gx) in enumerate(p_b)]
     bp1.append((L, home))
     cur0 = keyframes([(t, tf(b)) for t, b in bp0], t0, "transform")
@@ -572,7 +601,7 @@ def banner(seed=17):
                       t0, "opacity")
     curb1 = keyframes(blinks([(t_a[0], t_a[-1] + 0.12), (t_da[0], t_da[-1] + 0.05), (t_b[0], t_b[-1] + 0.12),
                               (t_db[0], t_db[-1] + 0.05)], L), L, "opacity")
-    rest = box(3, p_a[-1][2] + adv(19))  # the final frame: the role line typed, the cursor after it
+    rest = box(3, p_a[-1][2] + adv(rs))  # the final frame: the role line typed, the cursor after it
     cursor_el = (f'<g style="animation:{curb0} {num(t0)}s step-end,{curb1} {num(L)}s step-end {num(t0)}s infinite">'
                  f'<rect class="cu" width="1" height="1" transform="translate({num(rest[0])} {num(rest[1])}) '
                  f'scale({num(rest[2])} {num(rest[3])})" style="animation:{cur0} {num(t0)}s step-end,'
@@ -582,18 +611,18 @@ def banner(seed=17):
         tsp = "".join(f'<tspan x="{x}" dy="{34 if j else 0}">{escape(rnd.choice("{}[]();<>/=+*01"))}</tspan>' for j in range(9))
         dur, off, op = rnd.uniform(7, 13), rnd.uniform(0, 13), rnd.uniform(0.16, 0.34)
         rain.append(f'<text y="-20" font-size="17" fill-opacity="{num(op)}" style="animation:fall {num(dur)}s linear -{num(off)}s infinite">{tsp}</text>')
-    css.append("@keyframes fall{from{transform:translateY(-330px)}to{transform:translateY(360px)}}")
+    css.append(f"@keyframes fall{{from{{transform:translateY(-{BH + 10}px)}}to{{transform:translateY({BH + 40}px)}}}}")
     style = (".tx{fill:#e8e8e2}.cm{fill:#8b8b94}.nm{fill:url(#ink)}.cu{fill:#2563eb;fill-opacity:.92}" + "".join(css))
     sp = lambda gl, key, size, y, fill: f'<g fill="{fill}">' + "".join(doc.use(key, g, size, x, y) for _, g, x in gl) + "</g>"
-    static = (sp(p_title, "jb400", 13, WY + 22, "#8b8b94") + sp(p_user, "jb400", 22, 122, "#60a5fa")
-              + sp(p_path, "jb400", 22, 122, "#8b8b94") + sp(p_dollar, "jb400", 22, 122, "#e8e8e2"))
+    static = (sp(p_title, "jb400", ts, WY + 22, "#8b8b94") + sp(p_user, "jb400", ps, py, "#60a5fa")
+              + sp(p_path, "jb400", ps, py, "#8b8b94") + sp(p_dollar, "jb400", ps, py, "#e8e8e2"))
     hx, hy, hrx, hry = WX + WW / 2, WY + WH / 2 + 14, WW / 2 + 90, WH / 2 + 70  # the halo: a still light under the window
     defs = f"""
 <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b0d12"/><stop offset="1" stop-color="#0d1526"/></linearGradient>
-<linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="{LX}" y1="0" x2="{LX + 430}" y2="0"><stop offset="0" stop-color="#e8e8e2"/><stop offset=".55" stop-color="#e8e8e2"/><stop offset="1" stop-color="#93c5fd"/></linearGradient>
+<linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="{LX}" y1="0" x2="{LX + lay["ink"]}" y2="0"><stop offset="0" stop-color="#e8e8e2"/><stop offset=".55" stop-color="#e8e8e2"/><stop offset="1" stop-color="#93c5fd"/></linearGradient>
 <radialGradient id="vign" cx=".5" cy=".5" r=".8"><stop offset=".6" stop-color="#0b0d12" stop-opacity="0"/><stop offset="1" stop-color="#0b0d12" stop-opacity=".6"/></radialGradient>
 <radialGradient id="halo"><stop offset=".6" stop-color="#2563eb" stop-opacity=".22"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></radialGradient>
-<filter id="glow" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/><feColorMatrix in="b" type="matrix" values="0 0 0 0 .145 0 0 0 0 .388 0 0 0 0 .922 0 0 0 .7 0" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="glow" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="{lay["glow"]}" result="b"/><feColorMatrix in="b" type="matrix" values="0 0 0 0 .145 0 0 0 0 .388 0 0 0 0 .922 0 0 0 .7 0" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 <clipPath id="card"><rect width="{BW}" height="{BH}" rx="18"/></clipPath>
 <clipPath id="win"><rect x="{WX}" y="{WY}" width="{WW}" height="{WH}" rx="14"/></clipPath>
 """
@@ -645,20 +674,23 @@ def kit():
 
 
 if __name__ == "__main__":
-    files = {
-        "banner.svg": banner(),
-        "h-about.svg": header("01", "About", "python3 -i wentao.py", 1),
-        "h-stack.svg": header("02", "Stack", "ls ~/stack", 2),
-        "h-activity.svg": header("03", "Activity", "git log --since=1y", 3),
-        "about.svg": about(),
-        "stack.svg": stack(),
-        "link-site.svg": link("WENTAO.GG", icon=True, delay=0.0),
-        "link-linkedin.svg": link("LINKEDIN", delay=0.4),
-        "link-email.svg": link("ME@WENTAO.GG", delay=0.8),
-        "footer.svg": footer(),
-    }
+    files = {}
+    for sfx, narrow in (("", False), ("-narrow", True)):  # README.md shows the -narrow ones under 600 px
+        w = NARROW if narrow else W
+        files.update({
+            f"banner{sfx}.svg": banner(lay=SLIM if narrow else WIDE),
+            f"h-about{sfx}.svg": header("01", "About", "python3 -i wentao.py", 1, w),
+            f"h-stack{sfx}.svg": header("02", "Stack", "ls ~/stack", 2, w),
+            f"h-activity{sfx}.svg": header("03", "Activity", "git log --since=1y", 3, w),
+            f"about{sfx}.svg": about(w),
+            f"stack{sfx}.svg": stack(w),
+            f"link-site{sfx}.svg": link("WENTAO.GG", icon=True, delay=0.0, narrow=narrow),
+            f"link-linkedin{sfx}.svg": link("LINKEDIN", delay=0.4, narrow=narrow),
+            f"link-email{sfx}.svg": link("ME@WENTAO.GG", delay=0.8, narrow=narrow),
+            f"footer{sfx}.svg": footer(w),
+        })
     for name, content in files.items():
         (OUT / name).write_text(content)
     (OUT / "kit.json").write_text(json.dumps(kit(), separators=(",", ":")))
     for name in list(files) + ["kit.json"]:
-        print(f"{name:20s} {(OUT / name).stat().st_size:>7,d} bytes")
+        print(f"{name:24s} {(OUT / name).stat().st_size:>7,d} bytes")
