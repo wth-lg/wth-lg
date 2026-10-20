@@ -1,32 +1,36 @@
-"""The profile's daily data: draws assets/stats.svg and restyles the 3D contribution images.
+"""The profile's daily data: draws assets/stats.svg, writes its alt text into README.md and restyles the 3D images.
 
     GITHUB_TOKEN=... USERNAME=wth-lg python3 scripts/daily.py profile-3d-contrib/*.svg
 
 It reads the contribution calendar every visitor sees under the README (signed out, so UTC days; its daily totals count
 private work; GraphQL is the fallback), and then:
-  - assets/stats.svg: the last year's contributions, the current and longest streak and the active days, in Space
-    Grotesk numerals that roll into place, drawn from assets/kit.json (assets/build.py makes it), so no font tools here;
-  - each 3D image (github-profile-3d-contrib): its Commit / Issue / PullReq / Review / Repo radar becomes contributions
-    by weekday, because GitHub reports private organisation work only as daily totals, never by type, so the five axes
-    showed Commit 6 beside 7,789 contributions; the seven numbers add up to the headline, rewritten from the same
-    calendar. Its language donut (only "other", for the same reason) goes, and its colours and type become wentao.gg's.
+  - assets/stats.svg: the year's contributions, the typical (median) active day, the active days since the first one and
+    the streak, in Space Grotesk numerals that roll into place; the weekly totals as bars, the peak and the latest week
+    labelled; the median active day by weekday. Medians, because one 1,721-contribution day would otherwise decide the
+    mean and the busiest weekday. Drawn from assets/kit.json (assets/build.py makes it), so no font tools here;
+  - README.md: the stats image's alt text, between its <!-- stats --> markers, so a screen reader hears today's values;
+  - each 3D image (github-profile-3d-contrib): only its calendar stays, cropped to the bars. Its radar and language donut
+    see only public work (GitHub reports private organisation work as daily totals, never by type), its headline and
+    counters sit outside the crop, and the total leads stats.svg instead. Its SMIL growth goes (it ignored reduced
+    motion) for one CSS entrance, and its colours become wentao.gg's.
 """
 import json
 import math
 import os
 import re
+import statistics
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import date
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 NS = "http://www.w3.org/2000/svg"
 ET.register_namespace("", NS)
 ROOT = Path(__file__).resolve().parent.parent
 KIT = json.loads((ROOT / "assets" / "kit.json").read_text())
-DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]  # clockwise from the top
-R_OUT, R_LABEL = 156, 194  # the tool's outer ring; the labels sit just outside it
+DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
 
 def public_calendar(user):
@@ -78,10 +82,8 @@ def calendar(user, token):
 
 
 def stats(days):
+    """Medians are the lower median, a real day's count, so every figure is a whole number."""
     counts = [c for _, _, c in days]
-    by_day = [0] * 7  # Mon .. Sun; GitHub's weekday 0 is Sunday
-    for _, wd, c in days:
-        by_day[(wd + 6) % 7] += c
     run = longest = 0
     for c in counts:
         run = run + 1 if c else 0
@@ -91,10 +93,22 @@ def stats(days):
         i -= 1  # today may not have started yet
     while i >= 0 and counts[i]:
         current, i = current + 1, i - 1
-    best = max(days, key=lambda d: (d[2], d[0]))
-    return {"total": sum(counts), "by_day": by_day, "current": current, "longest": longest,
-            "active": sum(1 for c in counts if c), "span": len(counts), "first": days[0][0], "last": days[-1][0],
-            "best": best[2], "best_date": best[0]}
+    start = next((k for k, c in enumerate(counts) if c), len(counts) - 1)
+    since = days[start:]
+    by_day = [[] for _ in range(7)]  # Mon .. Sun; GitHub's weekday 0 is Sunday
+    for _, wd, c in since:
+        by_day[(wd + 6) % 7].append(c)
+    weeks = {}  # the calendar's own columns, Sunday to Saturday
+    for k, (d, _, c) in enumerate(days):
+        w = weeks.setdefault((k + days[0][1]) // 7, [d, d, 0])
+        w[1], w[2] = d, w[2] + c
+    active = [c for c in counts if c]
+    return {"total": sum(counts), "current": current, "longest": longest, "first": days[0][0], "last": days[-1][0],
+            "start": days[start][0], "since": len(since), "active": len(active),
+            "typical": statistics.median_low(active) if active else 0,
+            "by_day": [statistics.median_low([c for c in v if c]) if any(v) else 0 for v in by_day],
+            "share": [sum(1 for c in v if c) / max(len(v), 1) for v in by_day],
+            "weeks": [tuple(weeks[k]) for k in sorted(weeks)]}
 
 
 # ---------------------------------------------------------------------------------------------------- assets/stats.svg
@@ -102,83 +116,195 @@ def num(v):
     return ("%.2f" % v).rstrip("0").rstrip(".")
 
 
+def mono_width(text):
+    m = KIT["mono"]
+    return (m["advance"] + m["tracking"] * m["size"]) * len(text) - m["tracking"] * m["size"]
+
+
 def mono(text, x, y, cls, anchor="start"):
     m = KIT["mono"]
     step = m["advance"] + m["tracking"] * m["size"]
-    w = step * len(text) - m["tracking"] * m["size"]
-    x0 = x - w if anchor == "end" else x
+    x0 = x - mono_width(text) if anchor == "end" else x
     uses = "".join(f'<use href="#m{ord(ch)}" x="{num(x0 + i * step)}" y="{num(y)}"/>' for i, ch in enumerate(text) if ch != " ")
     return f'<g class="{cls}">{uses}</g>', {ch for ch in text if ch != " "}
 
 
-def odometer(value, x, base, t0):
-    """Each digit rolls down a 0-9 column into place, like wentao.gg's split-flap; the final frame is the number."""
-    size, cell = KIT["size"], KIT["cell"]
-    step = size * 1.25
-    text = f"{value:,}"
-    parts, cx = [], x
-    for i, ch in enumerate(text):
+def label(parts, x, y, anchor="start"):
+    """One line of mono runs, [(text, class)], set end to end."""
+    text = "".join(t for t, _ in parts)
+    m = KIT["mono"]
+    step = m["advance"] + m["tracking"] * m["size"]
+    cx = x - mono_width(text) if anchor == "end" else x
+    out, chars = [], set()
+    for t, cls in parts:
+        g, c = mono(t, cx, y, cls)
+        out.append(g)
+        chars |= c
+        cx += step * len(t)
+    return "".join(out), chars
+
+
+ROLL = 5  # cells every digit travels: equal travel, so equal speed
+
+
+def odometer(value, t0):
+    """Each digit rolls down five cells into place, like wentao.gg's split-flap; drawn at the origin, baseline 0.
+
+    The column's resting place is its own position, so the final frame (and reduced motion) is the number."""
+    step, cell = KIT["size"] * 1.25, KIT["cell"]
+    parts, cx = [], 0.0
+    for i, ch in enumerate(f"{value:,}"):
         if ch == ",":
-            parts.append(f'<use href="#dcomma" x="{num(cx)}" y="{num(base)}" class="fg"/>')
+            parts.append(f'<use href="#dcomma" x="{num(cx)}" class="fg"/>')
             cx += KIT["digits"][","]["w"]
             continue
         d = int(ch)
-        col = "".join(f'<use href="#d{k}" x="{num(cx)}" y="{num(base + k * step)}"/>' for k in range(10))
-        dur, delay = 1.2 + 0.1 * (len(text) - i), t0 + 0.06 * i
-        parts.append(f'<g clip-path="url(#cl)"><g class="fg" transform="translate(0 {num(-d * step)})" '
-                     f'style="animation:r{d} {num(dur)}s cubic-bezier(.2,.8,.2,1) {num(delay)}s both">{col}</g></g>')
+        col = "".join(f'<use href="#d{(d - ROLL + j) % 10}" x="{num(cx)}" y="{num((ROLL - j) * step)}"/>' for j in range(ROLL + 1))
+        parts.append(f'<g clip-path="url(#cl)"><g class="fg" style="animation:roll 1.2s cubic-bezier(.2,.8,.2,1) '
+                     f'{num(t0 + 0.1 * i)}s both">{col}</g></g>')
         cx += cell
     return "".join(parts)
 
 
+def short_day(iso):
+    return f"{date.fromisoformat(iso):%b %-d}".upper()
+
+
+def span(a, b):
+    """OCT 4–10, SEP 28–OCT 4, or one day."""
+    da, db = date.fromisoformat(a), date.fromisoformat(b)
+    if da == db:
+        return short_day(a)
+    return f"{short_day(a)}–{db.day}" if da.month == db.month else f"{short_day(a)}–{short_day(b)}"
+
+
+def window(s):
+    day = lambda iso: f"{date.fromisoformat(iso):%b %-d %Y}".upper()
+    return f"{day(s['first'])} – {day(s['last'])} · UTC"
+
+
+def alt_text(s):
+    weeks = s["weeks"]
+    peak, latest = max(weeks, key=lambda w: (w[2], w[0])), weeks[-1]
+    title = lambda iso: f"{date.fromisoformat(iso):%b %-d %Y}"
+    streak = (f"A {s['current']}-day streak, the longest {s['longest']}." if s["current"]
+              else f"No current streak; the longest {s['longest']} days.")
+    return (f"{s['total']:,} contributions from {title(s['first'])} to {title(s['last'])} (UTC). "
+            f"A typical active day has {s['typical']:,} (the median). "
+            f"Active on {s['active']} of the {s['since']} days since {title(s['start'])}. {streak} "
+            f"Weekly totals peak at {peak[2]:,} ({span(peak[0], peak[1]).title()}); "
+            f"the latest week has {latest[2]:,} ({span(latest[0], latest[1]).title()}). Median active day by weekday: "
+            + ", ".join(f"{d.title()} {v:,}" for d, v in zip(DAYS, s["by_day"])) + ".")
+
+
 def stats_svg(s):
-    W, H = 860, 140
-    size, step = KIT["size"], KIT["size"] * 1.25
-    base = 66
-    day = lambda iso: f"{date.fromisoformat(iso):%b %-d, %Y}".upper()
-    # no total: the 3D image's headline and GitHub's own calendar under the README already show it
-    cells = [
-        (s["current"], "DAY STREAK", "LONGEST YET" if s["current"] and s["current"] == s["longest"] else f"LONGEST {s['longest']}"),
-        (s["best"], "BEST DAY", day(s["best_date"])),
-        (s["active"], "ACTIVE DAYS", f"OF THE LAST {s['span']}"),
-        (round(s["total"] / max(s["active"], 1)), "PER ACTIVE DAY", "CONTRIBUTIONS"),
-    ]
+    W, H = 860, 352
+    size = KIT["size"]
+    base, lead = 66, 1.25  # the total's digits are 1.25x the others
     body, chars = [], set()
-    for k, (value, label, detail) in enumerate(cells):
-        x = k * 215 + (0 if k == 0 else 22)
-        body.append(odometer(value, x, base, 0.15 + 0.1 * k))
-        g1, c1 = mono(label, x, 96, "fg")
-        g2, c2 = mono(detail, x, 116, "mu")
-        body += [f'<g style="animation:wait {num(0.5 + 0.1 * k)}s step-end">{g1}</g>', f'<g style="animation:wait {num(0.6 + 0.1 * k)}s step-end">{g2}</g>']
+
+    # the row: the total leads, at 1.25x; the rest are its context
+    cells = [
+        (s["total"], "CONTRIBUTIONS", "LAST 12 MONTHS"),
+        (s["typical"], "TYPICAL DAY", "MEDIAN ACTIVE DAY"),
+        (s["active"], "ACTIVE DAYS", f"OF {s['since']} SINCE {short_day(s['start'])}"),
+        (s["current"], "DAY STREAK", "LONGEST YET" if s["current"] and s["current"] == s["longest"] else f"LONGEST {s['longest']}"),
+    ]
+    for k, (value, name, detail) in enumerate(cells):
+        x = 0 if k == 0 else 270 + (k - 1) * 196 + 18
+        t0 = 0.1 * (k + 1)
+        body.append(f'<g transform="translate({num(x)} {base}){" scale(%s)" % num(lead) if k == 0 else ""}">{odometer(value, t0)}</g>')
+        g1, c1 = mono(name, x, 98, "fg")
+        g2, c2 = mono(detail, x, 120, "mu")
+        body.append(f'<g style="animation:wait {num(t0)}s step-end">{g1}{g2}</g>')
         chars |= c1 | c2
         if k:
-            body.append(f'<line class="shl" x1="{k * 215}" y1="14" x2="{k * 215}" y2="124" stroke-width="1" pathLength="1" '
+            xd = 270 + (k - 1) * 196
+            body.append(f'<line class="shl" x1="{xd}" y1="14" x2="{xd}" y2="126" stroke-width="1" pathLength="1" '
                         f'stroke-dasharray="1" style="animation:draw .8s cubic-bezier(.65,0,.35,1) {num(0.1 * k)}s both"/>')
-    body.append('<line class="shl" x1="0" y1="138.5" x2="860" y2="138.5" stroke-width="1" pathLength="1" stroke-dasharray="1" '
+    body.append(f'<line class="shl" x1="0" y1="150.5" x2="{W}" y2="150.5" stroke-width="1" pathLength="1" stroke-dasharray="1" '
                 'style="animation:draw 1s cubic-bezier(.65,0,.35,1) .1s both"/>')
+    body.append('<line class="shl" x1="540" y1="166" x2="540" y2="340" stroke-width="1" pathLength="1" stroke-dasharray="1" '
+                'style="animation:draw .8s cubic-bezier(.65,0,.35,1) .4s both"/>')
+
+    # the weeks: one bar per calendar column, the peak and the latest week in blue and labelled
+    x0, x1, top, bottom = 0, 520, 268, 340
+    weeks = s["weeks"]
+    peak_k = max(range(len(weeks)), key=lambda k: (weeks[k][2], k))
+    last_k = len(weeks) - 1
+    pitch = (x1 - x0) / len(weeks)
+    bw = pitch * 0.7
+    hi = max(weeks[peak_k][2], 1)
+    bar_top = lambda k: bottom - max(1, (bottom - top) * weeks[k][2] / hi) if weeks[k][2] else bottom
+    bars = []
+    for k, (_, _, n) in enumerate(weeks):
+        if n:
+            y = bar_top(k)
+            paint = 'class="bl"' if k in (peak_k, last_k) else 'class="mu" fill-opacity=".45"'
+            bars.append(f'<rect {paint} x="{num(x0 + k * pitch)}" y="{num(y)}" width="{num(bw)}" height="{num(bottom - y)}"/>')
+    body.append(f'<g style="transform-origin:0 {bottom}px;animation:gy .8s cubic-bezier(.2,.8,.2,1) .5s both">{"".join(bars)}</g>')
+    body.append(f'<line class="shl" x1="{x0}" y1="{bottom + 0.5}" x2="{x1}" y2="{bottom + 0.5}" stroke-width="1"/>')
+    g1, c1 = mono("WEEKLY TOTALS", 0, 184, "fg")
+    g2, c2 = mono(window(s), 0, 206, "mu")
+    body.append(f'<g style="animation:wait .5s step-end">{g1}{g2}</g>')
+    chars |= c1 | c2
+    # the latest week's tag sits above the peak's: its leader passes right of the peak's tag, which ends at its own bar
+    marks = [(peak_k, "PEAK, LATEST", 258)] if peak_k == last_k else [(last_k, "LATEST", 236), (peak_k, "PEAK", 258)]
+    tags = []
+    for k, word, y in marks:
+        a, b, n = weeks[k]
+        parts = [(f"{n:,}", "fg"), (f" {word} · {span(a, b)}", "mu")]
+        w = mono_width("".join(t for t, _ in parts))
+        right = x0 + k * pitch + bw
+        g, c = label(parts, right, y, "end") if right - w >= 0 else label(parts, x0 + k * pitch, y, "start")
+        chars |= c
+        cx = x0 + k * pitch + bw / 2
+        tags.append(g)
+        if bar_top(k) - 3 - (y + 5) > 4:  # a tag right on its bar needs no leader
+            tags.append(f'<line class="smu" x1="{num(cx)}" y1="{y + 5}" x2="{num(cx)}" y2="{num(bar_top(k) - 3)}" stroke-width="1"/>')
+    body.append(f'<g style="animation:wait 1.3s step-end">{"".join(tags)}</g>')
+
+    # the weekdays: the median active day, Monday to Sunday, one blue
+    lx, bx = 558, 592
+    reach = W - bx - 8 - mono_width("0,000")  # room for the value after the longest bar
+    g1, c1 = mono("BY WEEKDAY", lx, 184, "fg")
+    g2, c2 = mono("MEDIAN ACTIVE DAY", lx, 206, "mu")
+    body.append(f'<g style="animation:wait .5s step-end">{g1}{g2}</g>')
+    chars |= c1 | c2
+    most = max(max(s["by_day"]), 1)
+    for k, (day, v) in enumerate(zip(DAYS, s["by_day"])):
+        y = 232 + 18 * k
+        t = 0.5 + 0.1 * k
+        g, c = mono(day, lx, y, "mu")
+        w = max(1, reach * v / most) if v else 0
+        gv, cv = mono(f"{v:,}", bx + w + 8, y, "fg")
+        chars |= c | cv
+        body.append(f'{g}<rect class="bl" x="{bx}" y="{y - 9}" width="{num(w)}" height="9" '
+                    f'style="transform-origin:{bx}px 0;animation:gx .8s cubic-bezier(.2,.8,.2,1) {num(t)}s both"/>'
+                    f'<g style="animation:wait {num(t + 0.8)}s step-end">{gv}</g>')
+
     defs = ["".join(f'<path id="d{k}" d="{KIT["digits"][str(k)]["d"]}"/>' for k in range(10)),
             f'<path id="dcomma" d="{KIT["digits"][","]["d"]}"/>',
             "".join(f'<path id="m{ord(ch)}" d="{KIT["mono"]["glyphs"][ch]}"/>' for ch in sorted(chars)),
-            f'<clipPath id="cl"><rect x="0" y="{num(base - size * 0.82)}" width="{W}" height="{num(size * 1.0)}"/></clipPath>']
-    rolls = "".join(f"@keyframes r{d}{{from{{transform:translateY(0)}}to{{transform:translateY({num(-d * step)}px)}}}}" for d in range(10))
-    alt = (f"A {s['current']}-day streak (the longest {s['longest']}); the best day {s['best']} contributions on "
-           f"{s['best_date']}; {s['active']} active days of the last {s['span']}; "
-           f"{round(s['total'] / max(s['active'], 1))} contributions per active day.")
+            f'<clipPath id="cl"><rect x="0" y="{num(-size * 0.82)}" width="{W}" height="{num(size * 1.0)}"/></clipPath>']
+    motion = (f"@keyframes roll{{from{{transform:translateY({num(-ROLL * size * 1.25)}px)}}}}"
+              "@keyframes gy{from{transform:scaleY(0)}}@keyframes gx{from{transform:scaleX(0)}}")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
-            f'aria-labelledby="t"><title id="t">{alt}</title><!-- Drawn daily by scripts/daily.py. -->\n'
-            f'<style>{KIT["css"]}{rolls}</style>\n<defs>{"".join(defs)}</defs>{"".join(body)}\n</svg>\n')
+            f'aria-labelledby="t"><title id="t">{escape(alt_text(s))}</title><!-- Drawn daily by scripts/daily.py. -->\n'
+            f'<style>{KIT["css"]}{motion}</style>\n<defs>{"".join(defs)}</defs>{"".join(body)}\n</svg>\n')
+
+
+def readme(path, s):
+    """The stats image's alt text, rewritten between its markers; the rest of README.md is left as it is."""
+    text = path.read_text()
+    tag = f'<img src="./assets/stats.svg" width="100%" alt="{escape(alt_text(s), {chr(34): "&quot;"})}" />'
+    out, n = re.subn(r"(<!-- stats -->\n).*?(\n<!-- /stats -->)", lambda m: m.group(1) + tag + m.group(2), text, flags=re.S)
+    if n != 1:
+        raise ValueError(f"{path}: {n} <!-- stats --> ... <!-- /stats --> blocks, not 1")
+    path.write_text(out)
 
 
 # ---------------------------------------------------------------------------------------------------- the 3D images
-def nice_step(raw):
-    mag = 10 ** math.floor(math.log10(max(raw, 1)))
-    return next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
-
-
-def short(n):
-    return f"{n / 1000:g}K" if n >= 1000 else f"{n:g}"
-
-
 def el(tag, attrs, text=None, parent=None):
     a = {k: str(v) for k, v in attrs.items()}
     e = ET.Element(f"{{{NS}}}{tag}", a) if parent is None else ET.SubElement(parent, f"{{{NS}}}{tag}", a)
@@ -187,89 +313,89 @@ def el(tag, attrs, text=None, parent=None):
     return e
 
 
-def point(k, r):
-    a = -math.pi / 2 + k * 2 * math.pi / 7
-    return r * math.cos(a), r * math.sin(a)
+def compose(m, t):
+    a, b, c, d, e, f = m
+    A, B, C, D, E, F = t
+    return a * A + c * B, b * A + d * B, a * C + c * D, b * C + d * D, a * E + c * F + e, b * E + d * F + f
 
 
-def radar(by_day, transform):
-    step = nice_step(max(by_day) / 4)
-    top = step * math.ceil(max(by_day) / step)
-    dash = "stroke-dasharray: 4 4; stroke-width: 1px;"
-    g = el("g", {"transform": transform})
-    ring = step
-    while ring <= top + 1e-9:  # dashed heptagons, labelled up the Mon axis like the tool's scale
-        r = R_OUT * ring / top
-        el("polygon", {"points": " ".join("%.2f,%.2f" % point(k, r) for k in range(7)), "fill": "none",
-                       "class": "stroke-weak", "style": dash}, parent=g)
-        el("text", {"style": "font-size: 14px;", "x": 6, "y": "%.2f" % (-r), "dominant-baseline": "middle",
-                    "class": "fill-weak"}, short(ring), parent=g)
-        ring += step
-    for k, (day, n) in enumerate(zip(DAYS, by_day)):
-        x, y = point(k, R_OUT)
-        el("line", {"x1": 0, "y1": 0, "x2": "%.2f" % x, "y2": "%.2f" % y, "class": "stroke-weak", "style": dash}, parent=g)
-        lx, ly = point(k, R_LABEL)
-        label = el("text", {"style": "font-size: 20.8px;", "text-anchor": "middle", "dominant-baseline": "middle",
-                            "x": "%.2f" % lx, "y": "%.2f" % (ly - 11), "class": "fill-fg"}, day, parent=g)
-        el("title", {}, f"{day}: {n:,} contributions", parent=label)
-        el("text", {"style": "font-size: 18px; font-weight: bold;", "text-anchor": "middle", "dominant-baseline": "middle",
-                    "x": "%.2f" % lx, "y": "%.2f" % (ly + 11), "class": "fill-strong"}, f"{n:,}", parent=g)
-    pts = " ".join("%.2f,%.2f" % point(k, R_OUT * n / top) for k, n in enumerate(by_day))
-    poly = el("polygon", {"class": "radar", "points": pts}, parent=g)
-    el("animate", {"attributeName": "points", "values": " ".join(["0,0"] * 7) + ";" + pts, "dur": "3s", "repeatCount": "1"}, parent=poly)
-    return g
+def matrix(transform):
+    """An SVG transform list as (a b c d e f); a function the tool never wrote raises."""
+    m = (1, 0, 0, 1, 0, 0)
+    for op, args in re.findall(r"(\w+)\s*\(([^)]*)\)", transform or ""):
+        v = [float(x) for x in re.split(r"[\s,]+", args.strip())]
+        m = compose(m, {"translate": lambda x, y=0: (1, 0, 0, 1, x, y),
+                        "scale": lambda x, y=None: (x, 0, 0, x if y is None else y, 0, 0),
+                        "skewX": lambda a: (1, 0, math.tan(math.radians(a)), 1, 0, 0),
+                        "skewY": lambda a: (1, math.tan(math.radians(a)), 0, 1, 0, 0),
+                        "matrix": lambda *k: k}[op](*v))
+    return m
 
 
-RAMPS = {  # contribution levels 0-4 as (top, left, right) faces: wentao.gg's blue
+def bbox(group):
+    """The bars' extent: every face's corners through its transforms (the tool draws faces as skewed rects)."""
+    xs, ys = [], []
+    for bar in group:
+        mb = compose(matrix(group.get("transform")), matrix(bar.get("transform")))
+        for r in bar.iter(f"{{{NS}}}rect"):
+            a, b, c, d, e, f = compose(mb, matrix(r.get("transform")))
+            x, y, w, h = (float(r.get(k)) for k in ("x", "y", "width", "height"))
+            for px, py in ((x, y), (x + w, y), (x, y + h), (x + w, y + h)):
+                xs.append(a * px + c * py + e)
+                ys.append(b * px + d * py + f)
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+RAMPS = {  # contribution levels 0-4 as (top, left, right) faces: wentao.gg's blue; light levels 1-2 stay grey, so blue is real work
     "dark": [("#1b2029", "#151a22", "#10141a"), ("#13284f", "#10203f", "#0c1931"), ("#1e3a8a", "#182f70", "#132558"),
              ("#2563eb", "#1e50bf", "#183f96"), ("#60a5fa", "#4d86cc", "#3c69a0")],
-    "light": [("#ebedf0", "#dfe2e6", "#d3d7dc"), ("#c7d7fe", "#b0c4f0", "#9bb1e0"), ("#93b4f8", "#7d9ee6", "#6888d0"),
+    "light": [("#ebedf0", "#dfe2e6", "#d3d7dc"), ("#e3e7ee", "#d6dae2", "#c9ced6"), ("#c9d3e3", "#bac4d6", "#abb5c8"),
               ("#3b82f6", "#2f6fdc", "#255cc0"), ("#1d4ed8", "#183fb0", "#12318c")],
 }
-INKS = {"dark": ("#e8e8e2", "#8b8b94", "#30363d", "#60a5fa", ".3"), "light": ("#0b0d12", "#626c7a", "#d0d7de", "#2563eb", ".18")}
+PAD = 12  # air around the bars in the cropped viewBox
 
 
 def theme_css(theme):
-    fg, mu, hl, strong, op = INKS[theme]
-    fonts = KIT["fonts"]
-    css = [f'@font-face{{font-family:WGM;src:url(data:font/woff2;base64,{fonts["mono"]}) format("woff2")}}',
-           f'@font-face{{font-family:WGD;font-weight:700;src:url(data:font/woff2;base64,{fonts["display"]}) format("woff2")}}',
-           "text{font-family:WGM,ui-monospace,monospace}",
-           'text[style*="32px"],text[style*="24px"]{font-family:WGD,sans-serif;font-weight:700}',
-           f".fill-bg{{fill:none}}.fill-fg{{fill:{fg}}}.fill-weak{{fill:{mu}}}.stroke-weak{{stroke:{hl}}}"
-           f".stroke-fg{{stroke:{fg}}}.fill-strong{{fill:{strong}}}"
-           f".radar{{stroke:#2563eb;fill:#2563eb;fill-opacity:{op};stroke-width:3px}}"]
+    css = ["@keyframes in{from{opacity:0;transform:translateY(24px)}}"
+           ".cal{animation:in 1s cubic-bezier(.2,.8,.2,1) .2s both}"
+           "@media (prefers-reduced-motion: reduce){*{animation:none!important}}"]
     for lvl, (top, left, right) in enumerate(RAMPS[theme]):
         css.append(f".cont-top-{lvl}{{fill:{top}}}.cont-left-{lvl}{{fill:{left}}}.cont-right-{lvl}{{fill:{right}}}")
     return "".join(css)
 
 
 def rewrite(path, s):
+    """The tool's image down to its calendar. Anything not laid out as v0.9.3 lays it out raises: no silent skips."""
     tree = ET.parse(path)
     root = tree.getroot()
-    kids = list(root)
-    old = next((c for c in kids if c.find(f".//{{{NS}}}polygon[@class='radar']") is not None), None)
-    if old is None:
-        print(f"{path}: no radar, left alone")
-        return
-    for t in root.iter(f"{{{NS}}}text"):  # the headline, the tool's one number in fill-strong; before the radar adds more
-        if t.get("class") == "fill-strong" and (t.text or "").strip().isdigit():
-            t.text = f"{s['total']:,}"
-    root.insert(kids.index(old), radar(s["by_day"], old.get("transform", "")))
-    root.remove(old)
-    for c in list(root):  # the language donut: the tool's group at translate(40, 520)
-        if (c.get("transform") or "").replace(" ", "") == "translate(40,520)":
+    g = f"{{{NS}}}g"
+    cal = [c for c in root if c.tag == g and not c.get("transform") and c.find(f"{g}/{{{NS}}}rect") is not None]
+    radar = [c for c in root if c.find(f".//{{{NS}}}polygon[@class='radar']") is not None]
+    heads = [c for c in root if c.tag == g and any(t.get("class") == "fill-strong" and "32px" in (t.get("style") or "")
+                                                   for t in c.iter(f"{{{NS}}}text"))]
+    if (len(cal), len(radar), len(heads)) != (1, 1, 1):
+        raise ValueError(f"{path}: {len(cal)} calendars, {len(radar)} radars, {len(heads)} headlines, not one each "
+                         "(not the tool's own output, or the tool's layout changed)")
+    smil = 0
+    for e in root.iter():
+        for k in list(e):
+            if k.tag in (f"{{{NS}}}animate", f"{{{NS}}}animateTransform"):
+                e.remove(k)
+                smil += 1
+    x0, y0, x1, y1 = bbox(cal[0])
+    for c in list(root):  # the radar, the donut, the headline row and the background: everything but the bars
+        if c is not cal[0] and c.tag not in (f"{{{NS}}}style", f"{{{NS}}}defs"):
             root.remove(c)
-    for c in list(root):  # the star and fork counters beside the headline: the public repos' zeros, no information
-        texts = [t.text or "" for t in c.iter(f"{{{NS}}}text")]
-        if "contributions" in texts:
-            for k in list(c):
-                if k.tag == f"{{{NS}}}g" or (k.tag == f"{{{NS}}}text" and k.find(f"{{{NS}}}title") is not None):
-                    c.remove(k)
+    cal[0].set("class", "cal")
+    vx, vy = math.floor(x0 - PAD), math.floor(y0 - PAD)
+    vw, vh = math.ceil(x1 + PAD) - vx, math.ceil(y1 + PAD) - vy
+    root.set("viewBox", f"{vx} {vy} {vw} {vh}")
+    root.set("width", str(vw))
+    root.set("height", str(vh))
     theme = "dark" if "night" in Path(path).name else "light"
     el("style", {}, theme_css(theme), parent=root)
     tree.write(path, encoding="unicode")
-    print(f"{path}: {theme}, weekday radar {dict(zip(DAYS, s['by_day']))}, total {s['total']}")
+    print(f"{path}: {theme}, {smil} SMIL animations removed, cropped to {vx} {vy} {vw} {vh}")
 
 
 if __name__ == "__main__":
@@ -277,6 +403,9 @@ if __name__ == "__main__":
     s = stats(days)
     print(f"read {len(days)} days from {source}")
     (ROOT / "assets" / "stats.svg").write_text(stats_svg(s))
-    print("assets/stats.svg:", {k: s[k] for k in ("total", "current", "longest", "best", "best_date", "active", "span", "first", "last")})
+    readme(ROOT / "README.md", s)
+    print("assets/stats.svg:", {k: s[k] for k in ("total", "typical", "active", "since", "start", "current", "longest", "first", "last")})
+    print("by weekday, median active day:", dict(zip(DAYS, s["by_day"])))
+    print("by weekday, share of days active:", {d: round(v, 2) for d, v in zip(DAYS, s["share"])})
     for path in sys.argv[1:]:
         rewrite(path, s)
