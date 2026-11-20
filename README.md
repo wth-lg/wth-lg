@@ -23,7 +23,7 @@
 <!-- stats -->
 <picture>
   <source media="(max-width: 676px), (min-width: 768px) and (max-width: 964px), (min-width: 1012px) and (max-width: 1028px)" srcset="https://raw.githubusercontent.com/wth-lg/wth-lg/main/assets/stats-narrow.svg" />
-  <img src="./assets/stats.svg" width="100%" alt="7,160 contributions from Nov 16 2025 to Nov 19 2026 (UTC). A typical active day has 18 (the median). Active on 225 of the 242 days since Mar 23 2026. A 39-day streak; the longest in the last 12 months is 39. Weekly totals peak at 916 (Oct 4–10); the latest week has 64 (Nov 15–19). Median active day by weekday: Mon 15, Tue 18, Wed 19, Thu 19, Fri 19, Sat 17, Sun 20." />
+  <img src="./assets/stats.svg" width="100%" alt="7,238 contributions from Nov 16 2025 to Nov 20 2026 (UTC). A typical active day has 18 (the median). Active on 226 of the 243 days since Mar 23 2026. A 40-day streak; the longest in the last 12 months is 40. Weekly totals peak at 916 (Oct 4–10); the latest week has 142 (Nov 15–20). Median active day by weekday: Mon 15, Tue 18, Wed 19, Thu 20, Fri 19, Sat 17, Sun 20." />
 </picture>
 <!-- /stats -->
 <picture>
